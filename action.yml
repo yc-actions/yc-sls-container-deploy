@@ -1,11 +1,60 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'YC Serverless Container Deploy'
+description: 'GitHub Action to deploy Serverless Container to Yandex Cloud'
+author: 'Nikolay Matrosov'
 inputs:
-  milliseconds: # change this
+  yc-sa-json-credentials:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'Json containing authorized key for Service Account. More info https://cloud.yandex.ru/docs/container-registry/operations/authentication#sa-json'
+  container-name:
+    required: true
+    description: 'Container name'
+  folder-id:
+    required: true
+    description: 'Folder ID'
+  revision-service-account-id:
+    required: false
+    description: 'Id of service account that will be used to pull images to be deployed. Can be omitted if container registry has public access'
+  revision-cores:
+    required: false
+    description: 'Number of Cores'
+    default: '1'
+  revision-memory:
+    required: false
+    description: 'Memory. Format: `\\d(Mb|Gb)`. E.g. 128Mb'
+    default: '128Mb'
+  revision-core-fraction:
+    required: false
+    description: 'Core fraction'
+    default: '100'
+  revision-concurrency:
+    required: false
+    description: 'Number of concurrently handled requests. 1-16'
+    default: '1'
+  revision-image-url:
+    required: true
+    description: 'Url of the docker image'
+  revision-execution-timeout:
+    required: false
+    description: 'Request execution timeout in seconds'
+    default: '3'
+  revision-working-dir:
+    required: false
+    description: 'Working directory inside container'
+  revision-commands:
+    required: false
+    description: 'Command'
+  revision-args:
+    required: false
+    description: 'Arguments'
+  revision-env:
+    required: false
+    description: 'Environment variables. Multiline. Format: VARIABLE=value'
+outputs:
+  rev:
+    description: 'Id of created revision'
+branding:
+  color: blue
+  icon: upload-cloud
 runs:
   using: 'node12'
   main: 'dist/index.js'
