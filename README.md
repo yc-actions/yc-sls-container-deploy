@@ -34,10 +34,6 @@ image name and tag.
     - name: Deploy Serverless Container
       id: deploy-sls-container
       uses: yc-actions/yc-sls-container-deploy@v1
-      env:
-        CR_REGISTRY: crp00000000000000000
-        CR_REPOSITORY: my-cr-repo
-        IMAGE_TAG: ${{ github.sha }}
       with:
         yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
         container-name: yc-action-demo
@@ -47,7 +43,7 @@ image name and tag.
         revision-memory: 512Mb
         revision-core-fraction: 100
         revision-concurrency: 8
-        revision-image-url: cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG
+        revision-image-url: cr.yandex/crp00000000000000000/my-cr-repo:${{ github.sha }}
         revision-execution-timeout: 10
 ```
 
