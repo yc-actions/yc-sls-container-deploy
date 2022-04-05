@@ -26,7 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.6.0",
-    "@actions/github": "^5.0.0",
+    "@actions/github": "^5.0.1",
     "@nikolay.matrosov/yc-ts-sdk": "^1.6.4",
     "yaml": "^1.10.2"
   },
