@@ -6,9 +6,10 @@
   "scripts": {
     "build": "tsc",
     "lint": "eslint src/**/*.ts",
+    "format": "prettier src/**/*.ts -w",
     "package": "ncc build --source-map --license licenses.txt",
     "test": "jest",
-    "all": "npm run build && npm run lint && npm run package && npm test"
+    "all": "npm run build && npm run format && npm run lint && npm run package && npm test"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,8 @@
     "@typescript-eslint/parser": "^5.26.0",
     "@vercel/ncc": "^0.33.4",
     "eslint": "^8.16.0",
+    "eslint-plugin-prefer-arrow-functions": "^3.1.4",
+    "eslint-plugin-unicorn": "^42.0.0",
     "eslint-plugin-github": "^4.3.6",
     "eslint-plugin-jest": "^26.2.2",
     "jest": "^27.5.1",

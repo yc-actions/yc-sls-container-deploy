@@ -4,11 +4,7 @@
     "commonjs": true
   },
   "extends": [
-    "eslint:recommended",
-    "airbnb-base",
-    "airbnb-typescript/base",
-    "plugin:unicorn/recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:github/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "plugins": [
@@ -31,7 +27,7 @@
     "import/prefer-default-export": "off",
     "comma-dangle": ["error", "always-multiline"],
     "indent": "off",
-    "@typescript-eslint/indent": ["error", 4],
+    "@typescript-eslint/indent": ["error", 2],
     "max-len": ["error", 140],
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-optional-chain": "error",
@@ -41,6 +37,7 @@
     "newline-before-return": "error",
     "no-plusplus": "off",
     "unicorn/import-style": "off",
+    "i18n-text/no-en": "off",
     "@typescript-eslint/no-var-requires": "off",
     "no-underscore-dangle": ["error", {
       "allowAfterThis": true,
@@ -50,6 +47,7 @@
     "import/no-extraneous-dependencies": ["error", {
       "devDependencies": true
     }],
-    "import/no-cycle": "off"
+    "import/no-cycle": "off",
+    "import/no-namespace": "off"
   }
 }
