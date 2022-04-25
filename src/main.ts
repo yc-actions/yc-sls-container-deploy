@@ -164,6 +164,7 @@ async function run(): Promise<void> {
       containerId = resp.id
       core.info(`Container successfully created. Id: ${containerId}`)
     }
+    core.setOutput('id', containerId)
 
     core.info(`Creating new revision.`)
     const rev = await createRevision(session, containerService, containerId, revisionInputs)
