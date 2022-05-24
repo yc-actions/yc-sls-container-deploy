@@ -1,6 +1,5 @@
 import * as core from '@actions/core';
 import { context } from '@actions/github';
-import { IIAmCredentials } from '@yandex-cloud/nodejs-sdk/dist/types';
 import { serviceClients, Session, waitForOperation, decodeMessage } from '@yandex-cloud/nodejs-sdk';
 
 import {
