@@ -26,13 +26,13 @@
   "dependencies": {
     "@actions/core": "^1.8.2",
     "@actions/github": "^5.0.3",
-    "@yandex-cloud/nodejs-sdk": "^2.1.0",
+    "@yandex-cloud/nodejs-sdk": "^2.1.1",
     "yaml": "^2.1.1"
   },
   "devDependencies": {
     "@types/node": "^17.0.36",
     "@typescript-eslint/eslint-plugin": "^5.27.0",
-    "@typescript-eslint/parser": "^5.27.0",
+    "@typescript-eslint/parser": "^5.27.1",
     "@vercel/ncc": "^0.34.0",
     "eslint": "^8.16.0",
     "eslint-plugin-prefer-arrow-functions": "^3.1.4",
