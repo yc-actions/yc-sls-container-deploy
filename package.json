@@ -38,7 +38,7 @@
     "eslint-plugin-prefer-arrow-functions": "^3.1.4",
     "eslint-plugin-unicorn": "^42.0.0",
     "eslint-plugin-github": "^4.3.6",
-    "eslint-plugin-jest": "^26.4.6",
+    "eslint-plugin-jest": "^26.5.3",
     "jest": "^27.5.1",
     "js-yaml": "^4.1.0",
     "ts-jest": "^27.1.4",
