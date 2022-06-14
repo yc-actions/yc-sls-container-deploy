@@ -33,7 +33,7 @@ image name and tag.
 
     - name: Deploy Serverless Container
       id: deploy-sls-container
-      uses: yc-actions/yc-sls-container-deploy@v1
+      uses: yc-actions/yc-sls-container-deploy@v2
       with:
         yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
         container-name: yc-action-demo
