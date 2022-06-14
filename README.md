@@ -53,7 +53,7 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 
 This action requires the following minimum set of permissions:
 
-TODO: add permission set
+* `serverless.containers.editor`
 
 ## License Summary
 
