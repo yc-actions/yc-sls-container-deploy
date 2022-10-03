@@ -56,27 +56,30 @@ const createRevision = async (
   revisionInputs: IRevisionInputs,
 ): Promise<Revision> => {
   const client = session.client(serviceClients.ContainerServiceClient);
+  const req = {
+    containerId,
+    resources: {
+      memory: revisionInputs.memory,
+      cores: revisionInputs.cores,
+      coreFraction: revisionInputs.coreFraction,
+    },
+    executionTimeout: { seconds: revisionInputs.executionTimeout },
+    serviceAccountId: revisionInputs.serviceAccountId,
+    imageSpec: {
+      imageUrl: revisionInputs.imageUrl,
+      command: revisionInputs.command,
+      args: revisionInputs.args,
+      environment: revisionInputs.environment,
+      workingDir: revisionInputs.workingDir,
+    },
+    concurrency: revisionInputs.concurrency,
+  } as any;
 
-  const revisionDeployOperation = await client.deployRevision(
-    DeployContainerRevisionRequest.fromPartial({
-      containerId,
-      resources: {
-        memory: revisionInputs.memory,
-        cores: revisionInputs.cores,
-        coreFraction: revisionInputs.coreFraction,
-      },
-      executionTimeout: { seconds: revisionInputs.executionTimeout },
-      serviceAccountId: revisionInputs.serviceAccountId,
-      imageSpec: {
-        imageUrl: revisionInputs.imageUrl,
-        command: revisionInputs.command,
-        args: revisionInputs.args,
-        environment: revisionInputs.environment,
-        workingDir: revisionInputs.workingDir,
-      },
-      concurrency: revisionInputs.concurrency,
-    }),
-  );
+  if (revisionInputs.provisioned !== undefined) {
+    req.provisionPolicy = { minInstances: revisionInputs.provisioned };
+  }
+
+  const revisionDeployOperation = await client.deployRevision(DeployContainerRevisionRequest.fromPartial(req));
 
   const operation = await waitForOperation(revisionDeployOperation, session);
 
@@ -99,6 +102,7 @@ interface IRevisionInputs {
   command: { command: string[] } | undefined;
   args: { args: string[] } | undefined;
   environment: { [key: string]: string };
+  provisioned: number | undefined;
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -109,6 +113,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const memory: number = parseMemory(core.getInput('revision-memory') || '128Mb');
   const coreFraction: number = Number.parseInt(core.getInput('revision-core-fraction') || '100', 10);
   const concurrency: number = Number.parseInt(core.getInput('revision-concurrency') || '1', 10);
+  const provisionedRaw: string = core.getInput('revision-provisioned');
   const executionTimeout: number = Number.parseInt(core.getInput('revision-execution-timeout') || '3', 10);
   const commands: string[] = core.getMultilineInput('revision-commands');
 
@@ -124,6 +129,11 @@ const parseRevisionInputs = (): IRevisionInputs => {
 
     environment[key?.trim()] = value?.trim();
   }
+  let provisioned = undefined;
+
+  if (provisionedRaw !== '') {
+    provisioned = Number.parseInt(provisionedRaw, 10);
+  }
 
   return {
     imageUrl,
@@ -137,6 +147,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     command,
     args,
     environment,
+    provisioned,
   };
 };
 

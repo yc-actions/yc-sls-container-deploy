@@ -49,6 +49,9 @@ inputs:
   revision-env:
     required: false
     description: 'Environment variables. Multiline. Format: VARIABLE=value'
+  revision-provisioned:
+    required: false
+    description: 'Minimum count of provisioned instances'
 outputs:
   rev:
     description: 'Id of created revision'
