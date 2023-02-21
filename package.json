@@ -26,7 +26,7 @@
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
-    "@yandex-cloud/nodejs-sdk": "^2.3.2",
+    "@yandex-cloud/nodejs-sdk": "^2.4.1",
     "yaml": "^2.2.1"
   },
   "devDependencies": {
