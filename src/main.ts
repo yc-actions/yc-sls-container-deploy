@@ -70,6 +70,7 @@ const createRevision = async (
       command: revisionInputs.command,
       args: revisionInputs.args,
       environment: revisionInputs.environment,
+      secrets: revisionInputs.secrets,
       workingDir: revisionInputs.workingDir,
     },
     concurrency: revisionInputs.concurrency,
@@ -103,6 +104,7 @@ interface IRevisionInputs {
   args: { args: string[] } | undefined;
   environment: { [key: string]: string };
   provisioned: number | undefined;
+  secrets: Secret[];
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -122,6 +124,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
 
   const args = argList.length > 0 ? { args: argList } : undefined;
   const env: string[] = core.getMultilineInput('revision-env');
+  const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'));
   const environment: { [key: string]: string } = {};
 
   for (const line of env) {
@@ -129,6 +132,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
 
     environment[key?.trim()] = value?.trim();
   }
+
   let provisioned = undefined;
 
   if (provisionedRaw !== '') {
@@ -148,6 +152,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     args,
     environment,
     provisioned,
+    secrets,
   };
 };
 
@@ -197,6 +202,47 @@ const run = async (): Promise<void> => {
       core.setFailed(error.message);
     }
   }
+};
+
+export type Secret = {
+  environmentVariable: string;
+  id: string;
+  versionId: string;
+  key: string;
+};
+
+const parseLockboxSecretDefinition = (line: string) => {
+  const regex = /^(?<environmentVariable>.+)=(?<secretId>.+)\/(?<versionId>.+)\/(?<key>.+)$/gm;
+  const m = regex.exec(line.trim());
+
+  if (!m?.groups) {
+    throw new Error(`Line: '${line}' has wrong format`);
+  }
+
+  const { environmentVariable, secretId, versionId, key } = m.groups;
+
+  return {
+    environmentVariable,
+    id: secretId,
+    versionId,
+    key,
+  };
+};
+
+// environmentVariable=id/versionId/key
+export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
+  core.info(`Secrets string: "${secrets}"`);
+  const secretsArr: Secret[] = [];
+
+  for (const line of secrets) {
+    const secret = parseLockboxSecretDefinition(line);
+
+    secretsArr.push(secret);
+  }
+
+  core.info(`SecretsObject: "${JSON.stringify(secretsArr)}"`);
+
+  return secretsArr;
 };
 
 run();
