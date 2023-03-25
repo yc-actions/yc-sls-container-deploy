@@ -70,10 +70,10 @@ const createRevision = async (
       command: revisionInputs.command,
       args: revisionInputs.args,
       environment: revisionInputs.environment,
-      secrets: revisionInputs.secrets,
       workingDir: revisionInputs.workingDir,
     },
     concurrency: revisionInputs.concurrency,
+    secrets: revisionInputs.secrets,
   } as any;
 
   if (revisionInputs.provisioned !== undefined) {
