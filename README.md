@@ -51,9 +51,11 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 
 ## Permissions
 
-This action requires the following minimum set of permissions:
+To perform this action, it is required that the service account on behalf of which we are acting has granted the
+`serverless.containers.editor` role or greater.
 
-* `serverless.containers.editor`
+Optionally you may need to grant `iam.serviceAccounts.user` role if you provide the service account ID in params, so 
+the container service could assure that you have access to the service account.
 
 ## License Summary
 
