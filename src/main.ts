@@ -91,6 +91,10 @@ const createRevision = async (
   throw new Error('failed to create revision');
 };
 
+interface Environment {
+  [key: string]: string;
+}
+
 interface IRevisionInputs {
   imageUrl: string;
   workingDir: string;
@@ -102,7 +106,7 @@ interface IRevisionInputs {
   executionTimeout: number;
   command: { command: string[] } | undefined;
   args: { args: string[] } | undefined;
-  environment: { [key: string]: string };
+  environment: Environment;
   provisioned: number | undefined;
   secrets: Secret[];
 }
@@ -123,7 +127,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const argList: string[] = core.getMultilineInput('revision-args');
 
   const args = argList.length > 0 ? { args: argList } : undefined;
-  const environment: { [key: string]: string } = parseEnvironment(core.getMultilineInput('revision-env'));
+  const environment: Environment = parseEnvironment(core.getMultilineInput('revision-env'));
   const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'));
 
   let provisioned = undefined;
@@ -222,19 +226,18 @@ const parseLockboxSecretDefinition = (line: string) => {
   };
 };
 
-export const parseEnvironment = (envLines: string[]): { [key: string]: string } => {
-  const environment: { [key: string]: string } = {};
+export const parseEnvironment = (envLines: string[]): Environment => {
+  const environment: Environment = {};
 
   for (const line of envLines) {
     const i = line.indexOf('=');
-    const [key, value] = [line.slice(0, i), line.slice(i + 1)];
+    const [key, value] = [line.slice(0, i).trim(), line.slice(i + 1).trim()];
 
-    environment[key?.trim()] = value?.trim();
+    environment[key] = value;
   }
 
   return environment;
 };
-
 
 // environmentVariable=id/versionId/key
 export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
