@@ -123,15 +123,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const argList: string[] = core.getMultilineInput('revision-args');
 
   const args = argList.length > 0 ? { args: argList } : undefined;
-  const env: string[] = core.getMultilineInput('revision-env');
+  const environment: { [key: string]: string } = parseEnvironment(core.getMultilineInput('revision-env'));
   const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'));
-  const environment: { [key: string]: string } = {};
-
-  for (const line of env) {
-    const [key, value] = line.split('=');
-
-    environment[key?.trim()] = value?.trim();
-  }
 
   let provisioned = undefined;
 
@@ -228,6 +221,20 @@ const parseLockboxSecretDefinition = (line: string) => {
     key,
   };
 };
+
+export const parseEnvironment = (envLines: string[]): { [key: string]: string } => {
+  const environment: { [key: string]: string } = {};
+
+  for (const line of envLines) {
+    const i = line.indexOf('=');
+    const [key, value] = [line.slice(0, i), line.slice(i + 1)];
+
+    environment[key?.trim()] = value?.trim();
+  }
+
+  return environment;
+};
+
 
 // environmentVariable=id/versionId/key
 export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
