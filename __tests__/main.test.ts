@@ -8,7 +8,7 @@ import {
 } from '@jest/globals';
 import {
   Secret,
-  parseLockboxVariablesMapping,
+  parseLockboxVariablesMapping, parseEnvironment,
 } from '../src/main';
 
 // This test will run only in fully configured env and creates real containers
@@ -60,4 +60,19 @@ describe('lockbox', () => {
       expect(() => parseLockboxVariablesMapping(input)).toThrow();
     },
   );
+});
+
+describe('environment', () => {
+  test('it should parse envs with multiple =', () => {
+    const input = [
+      'DATABASE_URL=postgresql://user:password@host:port/db?sslmode=verify-full&target_session_attrs=read-write',
+      'GOOGLE_CLIENT_ID=id.apps.googleusercontent.com',
+    ];
+    const result = parseEnvironment(input);
+    const expected: { [key: string]: string } = {
+      DATABASE_URL: 'postgresql://user:password@host:port/db?sslmode=verify-full&target_session_attrs=read-write',
+      GOOGLE_CLIENT_ID: 'id.apps.googleusercontent.com',
+    };
+    expect(result).toEqual(expected);
+  });
 });
