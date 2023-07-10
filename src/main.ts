@@ -128,7 +128,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const environment: { [key: string]: string } = {};
 
   for (const line of env) {
-    const [key, value] = line.split('=');
+    const i = line.indexOf('=');
+    const [key, value] = [line.slice(0, i), line.slice(i + 1)];
 
     environment[key?.trim()] = value?.trim();
   }
