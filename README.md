@@ -18,7 +18,7 @@ image name and tag.
 ```yaml
     - name: Login to Yandex Cloud Container Registry
       id: login-cr
-      uses: yc-actions/yc-cr-login@v2
+      uses: yc-actions/yc-cr-login@v1
       with:
         yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
 
