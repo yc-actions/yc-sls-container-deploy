@@ -56,6 +56,9 @@ inputs:
   revision-provisioned:
     required: false
     description: 'Minimum count of provisioned instances'
+  connectivity:
+    required: false
+    description: 'Network access. If specified the revision will be attached to specified network'
 outputs:
   rev:
     description: 'Id of created revision'

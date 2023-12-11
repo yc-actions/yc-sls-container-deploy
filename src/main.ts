@@ -76,6 +76,9 @@ const createRevision = async (
     secrets: revisionInputs.secrets,
   } as any;
 
+  if (revisionInputs.connectivity !== undefined) {
+    req.connectivity = {networkId: revisionInputs.connectivity}
+  }
   if (revisionInputs.provisioned !== undefined) {
     req.provisionPolicy = { minInstances: revisionInputs.provisioned };
   }
@@ -109,6 +112,7 @@ interface IRevisionInputs {
   environment: Environment;
   provisioned: number | undefined;
   secrets: Secret[];
+  connectivity?: string;
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -121,6 +125,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const concurrency: number = Number.parseInt(core.getInput('revision-concurrency') || '1', 10);
   const provisionedRaw: string = core.getInput('revision-provisioned');
   const executionTimeout: number = Number.parseInt(core.getInput('revision-execution-timeout') || '3', 10);
+  const connectivity: string = core.getInput('connectivity');
   const commands: string[] = core.getMultilineInput('revision-commands');
 
   const command = commands.length > 0 ? { command: commands } : undefined;
@@ -150,6 +155,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     environment,
     provisioned,
     secrets,
+    connectivity,
   };
 };
 
