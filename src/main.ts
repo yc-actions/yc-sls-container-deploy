@@ -78,8 +78,8 @@ const createRevision = async (
     secrets: revisionInputs.secrets,
   } as DeepPartial<DeployContainerRevisionRequest>;
 
-  if (revisionInputs.revisionNetworkId !== undefined) {
-    req.connectivity = { networkId: revisionInputs.revisionNetworkId, subnetIds: [] };
+  if (revisionInputs.networkId !== '') {
+    req.connectivity = { networkId: revisionInputs.networkId, subnetIds: [] };
   }
   if (revisionInputs.provisioned !== undefined) {
     req.provisionPolicy = { minInstances: revisionInputs.provisioned };
@@ -114,7 +114,7 @@ interface IRevisionInputs {
   environment: Environment;
   provisioned: number | undefined;
   secrets: Secret[];
-  revisionNetworkId?: string;
+  networkId?: string;
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -127,7 +127,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const concurrency: number = Number.parseInt(core.getInput('revision-concurrency') || '1', 10);
   const provisionedRaw: string = core.getInput('revision-provisioned');
   const executionTimeout: number = Number.parseInt(core.getInput('revision-execution-timeout') || '3', 10);
-  const revisionNetworkId: string = core.getInput('revision-network-id');
+  const networkId: string = core.getInput('revision-network-id');
   const commands: string[] = core.getMultilineInput('revision-commands');
 
   const command = commands.length > 0 ? { command: commands } : undefined;
@@ -157,7 +157,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     environment,
     provisioned,
     secrets,
-    revisionNetworkId,
+    networkId,
   };
 };
 
