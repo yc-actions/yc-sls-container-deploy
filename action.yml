@@ -56,6 +56,9 @@ inputs:
   revision-provisioned:
     required: false
     description: 'Minimum count of provisioned instances'
+  revision-network-id:
+    required: false
+    description: 'Network id that will be attached to revision'
 outputs:
   rev:
     description: 'Id of created revision'

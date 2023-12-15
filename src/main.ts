@@ -15,6 +15,8 @@ import {
 import { parseMemory } from './memory';
 import { fromServiceAccountJsonFile } from './service-account-json';
 
+type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
+
 const findContainerByName = async (
   session: Session,
   folderId: string,
@@ -74,13 +76,16 @@ const createRevision = async (
     },
     concurrency: revisionInputs.concurrency,
     secrets: revisionInputs.secrets,
-  } as any;
+  } as DeepPartial<DeployContainerRevisionRequest>;
 
+  if (revisionInputs.networkId !== '') {
+    req.connectivity = { networkId: revisionInputs.networkId, subnetIds: [] };
+  }
   if (revisionInputs.provisioned !== undefined) {
     req.provisionPolicy = { minInstances: revisionInputs.provisioned };
   }
 
-  const revisionDeployOperation = await client.deployRevision(DeployContainerRevisionRequest.fromPartial(req));
+  const revisionDeployOperation = await client.deployRevision(DeployContainerRevisionRequest.fromPartial(req as any));
 
   const operation = await waitForOperation(revisionDeployOperation, session);
 
@@ -109,6 +114,7 @@ interface IRevisionInputs {
   environment: Environment;
   provisioned: number | undefined;
   secrets: Secret[];
+  networkId?: string;
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -121,6 +127,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const concurrency: number = Number.parseInt(core.getInput('revision-concurrency') || '1', 10);
   const provisionedRaw: string = core.getInput('revision-provisioned');
   const executionTimeout: number = Number.parseInt(core.getInput('revision-execution-timeout') || '3', 10);
+  const networkId: string = core.getInput('revision-network-id');
   const commands: string[] = core.getMultilineInput('revision-commands');
 
   const command = commands.length > 0 ? { command: commands } : undefined;
@@ -150,6 +157,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     environment,
     provisioned,
     secrets,
+    networkId,
   };
 };
 
