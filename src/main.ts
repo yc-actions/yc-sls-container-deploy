@@ -12,6 +12,7 @@ import {
   Container,
   Revision,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container';
+import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/access/access';
 import { parseMemory } from './memory';
 import { fromServiceAccountJsonFile } from './service-account-json';
 
@@ -161,6 +162,25 @@ const parseRevisionInputs = (): IRevisionInputs => {
   };
 };
 
+const makeContainerPublic = async (session: Session, containerId: string): Promise<void> => {
+  const client = session.client(serviceClients.ContainerServiceClient);
+
+  await client.setAccessBindings(
+    SetAccessBindingsRequest.fromPartial({
+      resourceId: containerId,
+      accessBindings: [
+        {
+          roleId: 'serverless.containers.invoker',
+          subject: {
+            id: 'allUsers',
+            type: 'system',
+          },
+        },
+      ],
+    }),
+  );
+};
+
 const run = async (): Promise<void> => {
   try {
     core.info('start');
@@ -201,6 +221,11 @@ const run = async (): Promise<void> => {
     core.info(`Revision created. Id: ${rev.id}`);
 
     core.setOutput('rev', rev.id);
+
+    if (core.getInput('public')) {
+      await makeContainerPublic(session, containerId);
+      core.info('Container is public now');
+    }
   } catch (error) {
     if (error instanceof Error) {
       core.error(error);

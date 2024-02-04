@@ -52,10 +52,12 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 ## Permissions
 
 To perform this action, it is required that the service account on behalf of which we are acting has granted the
-`serverless.containers.editor` role or greater.
+`serverless-containers.editor` role or greater.
 
 Optionally you may need to grant `iam.serviceAccounts.user` role if you provide the service account ID in params, so 
 the container service could assure that you have access to the service account.
+
+Also you may need to grant `serverless-containers.admin` if you want to make container public.
 
 ## License Summary
 
