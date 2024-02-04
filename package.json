@@ -1,6 +1,6 @@
 {
   "name": "yc-actions-yc-sls-container-deploy",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "GitHub Action to deploy Serverless Container to Yandex Cloud",
   "main": "lib/main.js",
   "scripts": {
