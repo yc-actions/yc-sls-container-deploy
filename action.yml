@@ -11,6 +11,9 @@ inputs:
   folder-id:
     required: true
     description: 'Folder ID'
+  public:
+    required: false
+    description: 'Make container publically available. Any user will be able to invoke a container without providing the authorization header'
   revision-service-account-id:
     required: false
     description: 'Id of service account that will be used to pull images to be deployed. Can be omitted if container registry has public access'
