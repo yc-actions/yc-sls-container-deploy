@@ -4,8 +4,8 @@ pull_request_rules:
     conditions:
       - base=main
       - author=dependabot[bot]
-      - status-success=Check dist
-      - status-success=build-test
+      - check-success=check-dist
+      - check-success=build
       - -title~=(WIP|wip)
       - -label~=(blocked|do-not-merge)
       - -merged
