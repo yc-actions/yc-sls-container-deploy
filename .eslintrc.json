@@ -48,6 +48,7 @@
       "devDependencies": true
     }],
     "import/no-cycle": "off",
-    "import/no-namespace": "off"
+    "import/no-namespace": "off",
+    "camelcase": "off"
   }
 }
