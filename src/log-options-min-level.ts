@@ -1,25 +1,21 @@
 import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/logging/v1/log_entry';
 
-const logLevelDictionary: Set<LogLevel_Level> = new Set([
-  LogLevel_Level.LEVEL_UNSPECIFIED,
-  LogLevel_Level.TRACE,
-  LogLevel_Level.DEBUG,
-  LogLevel_Level.INFO,
-  LogLevel_Level.WARN,
-  LogLevel_Level.ERROR,
-  LogLevel_Level.FATAL,
-]);
+const logLevelNamesDictionary = new Set(['LEVEL_UNSPECIFIED', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL']);
+
+const checkIsInputValueLogLevelName = (input: string): input is keyof typeof LogLevel_Level => {
+  return logLevelNamesDictionary.has(input);
+};
 
 export const parseLogOptionsMinLevel = (input: string): LogLevel_Level => {
   if (!input) {
     return LogLevel_Level.LEVEL_UNSPECIFIED;
   }
 
-  const number = Number.parseInt(input, 10);
+  const inputInUpperCase = input.toUpperCase();
 
-  if (!logLevelDictionary.has(number)) {
+  if (!checkIsInputValueLogLevelName(inputInUpperCase)) {
     throw new Error('revision-log-options-min-level has unknown value');
   }
 
-  return number;
+  return LogLevel_Level[inputInUpperCase];
 };

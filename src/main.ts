@@ -9,7 +9,7 @@ import {
   DeployContainerRevisionRequest,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container_service';
 import {
-  LogOptions as LogOptionsSdk,
+  LogOptions,
   Container,
   Revision,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container';
@@ -18,8 +18,6 @@ import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generate
 import { parseMemory } from './memory';
 import { parseLogOptionsMinLevel } from './log-options-min-level';
 import { fromServiceAccountJsonFile } from './service-account-json';
-
-type LogOptions = Omit<LogOptionsSdk, '$type'>;
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
 
@@ -150,12 +148,18 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const logOptionsFolderId: string | undefined = core.getInput('revision-log-options-folder-id') || undefined;
   const logOptionsMinLevel: LogLevel_Level = parseLogOptionsMinLevel(core.getInput('revision-log-options-min-level'));
 
-  const logOptions: LogOptions = {
+  if (!!logOptionsLogGroupId && !!logOptionsFolderId) {
+    throw new Error(
+      'revision-log-options-log-group-id and revision-log-options-folder-id cannot be set at the same time',
+    );
+  }
+
+  const logOptions = LogOptions.fromJSON({
     disabled: logOptionsDisabled,
     logGroupId: logOptionsLogGroupId,
     folderId: logOptionsFolderId,
     minLevel: logOptionsMinLevel,
-  };
+  });
 
   let provisioned = undefined;
 

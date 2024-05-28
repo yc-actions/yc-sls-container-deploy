@@ -74,8 +74,8 @@ inputs:
     description: 'Folder ID'
   revision-log-options-min-level:
     required: false
-    description: 'Minimum log entry level. LEVEL_UNSPECIFIED - 0, TRACE - 1, DEBUG - 2, INFO - 3, WARN - 4, ERROR - 5, FATAL - 6'
-    default: '0'
+    description: 'Minimum log entry level. (level_unspecified, trace, debug, info, warn, error, fatal)'
+    default: 'level_unspecified'
 outputs:
   rev:
     description: 'Id of created revision'
