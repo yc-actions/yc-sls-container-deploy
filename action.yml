@@ -13,7 +13,7 @@ inputs:
     description: 'Folder ID'
   public:
     required: false
-    description: 'Make container publically available. Any user will be able to invoke a container without providing the authorization header'
+    description: 'Make container publicly available. Any user will be able to invoke a container without providing the authorization header'
   revision-service-account-id:
     required: false
     description: 'Id of service account that will be used to pull images to be deployed. Can be omitted if container registry has public access'
@@ -62,6 +62,20 @@ inputs:
   revision-network-id:
     required: false
     description: 'Network id that will be attached to revision'
+  revision-log-options-disabled:
+    required: false
+    description: 'Is logging from container disabled. Possible values: "true", "false"'
+    default: 'false'
+  revision-log-options-log-group-id:
+    required: false
+    description: 'Log group ID'
+  revision-log-options-folder-id:
+    required: false
+    description: 'Folder ID'
+  revision-log-options-min-level:
+    required: false
+    description: 'Minimum log entry level. (level_unspecified, trace, debug, info, warn, error, fatal)'
+    default: 'level_unspecified'
 outputs:
   rev:
     description: 'Id of created revision'

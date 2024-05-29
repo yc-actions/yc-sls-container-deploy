@@ -9,11 +9,14 @@ import {
   DeployContainerRevisionRequest,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container_service';
 import {
+  LogOptions,
   Container,
   Revision,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container';
+import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/logging/v1/log_entry';
 import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/access/access';
 import { parseMemory } from './memory';
+import { parseLogOptionsMinLevel } from './log-options-min-level';
 import { fromServiceAccountJsonFile } from './service-account-json';
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
@@ -77,6 +80,7 @@ const createRevision = async (
     },
     concurrency: revisionInputs.concurrency,
     secrets: revisionInputs.secrets,
+    logOptions: revisionInputs.logOptions,
   } as DeepPartial<DeployContainerRevisionRequest>;
 
   if (revisionInputs.networkId !== '') {
@@ -115,6 +119,7 @@ interface IRevisionInputs {
   environment: Environment;
   provisioned: number | undefined;
   secrets: Secret[];
+  logOptions: LogOptions;
   networkId?: string;
 }
 
@@ -138,6 +143,24 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const environment: Environment = parseEnvironment(core.getMultilineInput('revision-env'));
   const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'));
 
+  const logOptionsDisabled: boolean = core.getBooleanInput('revision-log-options-disabled');
+  const logOptionsLogGroupId: string | undefined = core.getInput('revision-log-options-log-group-id') || undefined;
+  const logOptionsFolderId: string | undefined = core.getInput('revision-log-options-folder-id') || undefined;
+  const logOptionsMinLevel: LogLevel_Level = parseLogOptionsMinLevel(core.getInput('revision-log-options-min-level'));
+
+  if (!!logOptionsLogGroupId && !!logOptionsFolderId) {
+    throw new Error(
+      'revision-log-options-log-group-id and revision-log-options-folder-id cannot be set at the same time',
+    );
+  }
+
+  const logOptions = LogOptions.fromJSON({
+    disabled: logOptionsDisabled,
+    logGroupId: logOptionsLogGroupId,
+    folderId: logOptionsFolderId,
+    minLevel: logOptionsMinLevel,
+  });
+
   let provisioned = undefined;
 
   if (provisionedRaw !== '') {
@@ -159,6 +182,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     provisioned,
     secrets,
     networkId,
+    logOptions,
   };
 };
 
