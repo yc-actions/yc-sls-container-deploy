@@ -76,6 +76,11 @@ inputs:
     required: false
     description: 'Minimum log entry level. (level_unspecified, trace, debug, info, warn, error, fatal)'
     default: 'level_unspecified'
+  revision-storage-mounts:
+    description: 'Storage mounts. Pattern: "bucketId:prefix:mountPointPath:accessMode" or "bucketId:prefix:mountPointPath". Multiline.
+      prefix can be empty to mount all bucket. Example - "bucketId::mountPointPath:accessMode".
+      accessMode is optional parameter. Possible values: "read-only", "read-write". Default value - "read-only"'
+    required: false
 outputs:
   rev:
     description: 'Id of created revision'
