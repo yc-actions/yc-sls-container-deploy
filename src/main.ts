@@ -143,7 +143,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
   const environment: Environment = parseEnvironment(core.getMultilineInput('revision-env'));
   const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'));
 
-  const logOptionsDisabled: boolean = core.getInput('revision-log-options-disabled') === 'true';
+  const logOptionsDisabled: boolean = core.getBooleanInput('revision-log-options-disabled');
   const logOptionsLogGroupId: string | undefined = core.getInput('revision-log-options-log-group-id') || undefined;
   const logOptionsFolderId: string | undefined = core.getInput('revision-log-options-folder-id') || undefined;
   const logOptionsMinLevel: LogLevel_Level = parseLogOptionsMinLevel(core.getInput('revision-log-options-min-level'));
