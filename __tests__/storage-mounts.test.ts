@@ -64,6 +64,19 @@ test.each([
 	},
 	{
 		input: [
+			'bucketId:mountPointPath'
+		],
+		expectedOutput: [
+			{
+				bucketId: 'bucketId',
+				prefix: '',
+				mountPointPath: 'mountPointPath',
+				readOnly: true,
+			}
+		]
+	},
+	{
+		input: [
 			'bucketId:mountPointPath:rw'
 		],
 		expectedOutput: [
@@ -78,17 +91,10 @@ test.each([
 	{
 		input: [
 			'bucketId:mountPointPath:ro',
-			'bucketId:mountPointPath',
 			'bucketId/folderName/folderName/folderName:mountPointPath:ro',
 			'bucketId:mountPointPath:rw'
 		],
 		expectedOutput: [
-			{
-				bucketId: 'bucketId',
-				prefix: '',
-				mountPointPath: 'mountPointPath',
-				readOnly: true,
-			},
 			{
 				bucketId: 'bucketId',
 				prefix: '',
