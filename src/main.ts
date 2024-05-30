@@ -10,6 +10,7 @@ import {
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container_service';
 import {
   LogOptions,
+  StorageMount,
   Container,
   Revision,
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container';
@@ -17,6 +18,7 @@ import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/c
 import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/access/access';
 import { parseMemory } from './memory';
 import { parseLogOptionsMinLevel } from './log-options-min-level';
+import { parseStorageMounts } from './storage-mounts';
 import { fromServiceAccountJsonFile } from './service-account-json';
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T;
@@ -81,6 +83,7 @@ const createRevision = async (
     concurrency: revisionInputs.concurrency,
     secrets: revisionInputs.secrets,
     logOptions: revisionInputs.logOptions,
+    storageMounts: revisionInputs.storageMounts,
   } as DeepPartial<DeployContainerRevisionRequest>;
 
   if (revisionInputs.networkId !== '') {
@@ -120,6 +123,7 @@ interface IRevisionInputs {
   provisioned: number | undefined;
   secrets: Secret[];
   logOptions: LogOptions;
+  storageMounts?: StorageMount[];
   networkId?: string;
 }
 
@@ -154,6 +158,10 @@ const parseRevisionInputs = (): IRevisionInputs => {
     );
   }
 
+  const storageMounts: StorageMount[] | undefined = parseStorageMounts(
+    core.getMultilineInput('revision-storage-mounts'),
+  );
+
   const logOptions = LogOptions.fromJSON({
     disabled: logOptionsDisabled,
     logGroupId: logOptionsLogGroupId,
@@ -183,6 +191,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     secrets,
     networkId,
     logOptions,
+    storageMounts,
   };
 };
 

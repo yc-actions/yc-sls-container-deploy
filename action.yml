@@ -76,6 +76,11 @@ inputs:
     required: false
     description: 'Minimum log entry level. (level_unspecified, trace, debug, info, warn, error, fatal)'
     default: 'level_unspecified'
+  revision-storage-mounts:
+    description: 'Storage mounts. Pattern: "S3_PATH:MOUNT_PATH:ACCESS_MODE" or "S3_PATH:MOUNT_PATH". Multiline.
+      S3_PATH Pattern: "bucketId/bucketFolder" or "bucketId". bucketFolder can be empty to mount all bucket.
+      ACCESS_MODE is optional parameter. Possible values: "read-only", "ro", "readOnly", "read_only", "ReadOnly", "read-write", "rw", "readWrite", "read_write", "ReadWrite". Default value - "read-only"'
+    required: false
 outputs:
   rev:
     description: 'Id of created revision'
