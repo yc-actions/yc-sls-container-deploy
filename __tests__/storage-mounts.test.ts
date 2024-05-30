@@ -5,45 +5,45 @@ test('should return default value undefined when key is not set', () => {
   expect(parseStorageMounts([])).toBeUndefined()
 });
 
-test('should throw an error if bucketId is empty', () => {
-	const inputLineWithEmptyBucketId = ':prefix:mountPointPath:read-only'
+test('should throw an error if s3Path is empty', () => {
+	const inputLineWithEmptyS3Path = ':mountPath:ro'
 
   try {
-		parseStorageMounts([inputLineWithEmptyBucketId])
+		parseStorageMounts([inputLineWithEmptyS3Path])
   } catch (e: any) {
-    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithEmptyBucketId}' has wrong format. Empty bucketId`);
+    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithEmptyS3Path}' has wrong format. Empty s3Path`);
   }
 });
 
 test('should throw an error if mountPointPath is empty', () => {
-	const inputLineWithEmptyMountPointPath = 'bucketId:prefix::read-only'
+	const inputLineWithEmptyMountPointPath = 'bucketId/folderName::ro'
 
   try {
 		parseStorageMounts([inputLineWithEmptyMountPointPath])
   } catch (e: any) {
-    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithEmptyMountPointPath}' has wrong format. Empty mountPointPath`);
+    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithEmptyMountPointPath}' has wrong format. Empty mountPath`);
   }
 });
 
 test('should throw an error if accessMode is invalid', () => {
-	const inputLineWithInvalidAccessMode = 'bucketId:prefix:mountPointPath:access-mode-invalid'
+	const inputLineWithInvalidAccessMode = 'bucketId/folderName:mountPointPath:access-mode-invalid'
 
   try {
 		parseStorageMounts([inputLineWithInvalidAccessMode])
   } catch (e: any) {
-    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithInvalidAccessMode}' has wrong format. Invalid accessMode. Possible values: read-only, read-write`);
+    expect(e.message).toEqual(`revision-storage-mounts: Line: '${inputLineWithInvalidAccessMode}' has wrong format. Invalid accessMode. Possible values: read-only, ro, readOnly, read_only, ReadOnly, read-write, rw, readWrite, read_write, ReadWrite`);
   }
 });
 
 test.each([
 	{
 		input: [
-			"bucketId:prefix:mountPointPath:read-only"
+			'bucketId/folderName:mountPointPath:ro'
 		],
 		expectedOutput: [
 			{
 				bucketId: 'bucketId',
-				prefix: 'prefix',
+				prefix: 'folderName',
 				mountPointPath: 'mountPointPath',
 				readOnly: true,
 			}
@@ -51,7 +51,7 @@ test.each([
 	},
 	{
 		input: [
-			"bucketId::mountPointPath:read-only"
+			'bucketId:mountPointPath:ro'
 		],
 		expectedOutput: [
 			{
@@ -64,7 +64,7 @@ test.each([
 	},
 	{
 		input: [
-			"bucketId: :mountPointPath:read-write"
+			'bucketId:mountPointPath:rw'
 		],
 		expectedOutput: [
 			{
@@ -77,9 +77,9 @@ test.each([
 	},
 	{
 		input: [
-			"bucketId::mountPointPath: read-only ",
-			"bucketId:prefix:mountPointPath :read-only ",
-			"bucketId::mountPointPath:read-write"
+			'bucketId:mountPointPath:ro',
+			'bucketId/folderName/folderName/folderName:mountPointPath:ro',
+			'bucketId:mountPointPath:rw'
 		],
 		expectedOutput: [
 			{
@@ -90,7 +90,7 @@ test.each([
 			},
 			{
 				bucketId: 'bucketId',
-				prefix: 'prefix',
+				prefix: 'folderName/folderName/folderName',
 				mountPointPath: 'mountPointPath',
 				readOnly: true,
 			},
@@ -102,6 +102,6 @@ test.each([
 			}
 		]
 	}
-])("test parseStorageMounts with $input", ({ input, expectedOutput }) => {
+])('test parseStorageMounts with $input', ({ input, expectedOutput }) => {
   expect(parseStorageMounts(input)).toMatchObject(expectedOutput)
 })

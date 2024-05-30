@@ -1,30 +1,40 @@
 import { StorageMount } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container';
 
 const DELIMITER = ':';
-const accessModeDictionary = new Set(['read-only', 'read-write']);
+const PATH_DELIMITER = '/';
+
+const accessModeReadOnlyValuesSet = new Set(['read-only', 'ro', 'readOnly', 'read_only', 'ReadOnly']);
+const accessModeReadWriteValuesSet = new Set(['read-write', 'rw', 'readWrite', 'read_write', 'ReadWrite']);
+const accessModeValuesSet = new Set([
+  ...Array.from(accessModeReadOnlyValuesSet),
+  ...Array.from(accessModeReadWriteValuesSet),
+]);
 
 const parseStorageMount = (input: string): StorageMount => {
-  const [bucketId, prefix, mountPointPath, accessMode] = input.split(DELIMITER).map(el => el.trim());
+  const [s3Path, mountPointPath, accessMode] = input.split(DELIMITER).map(el => el.trim());
   let readOnly = true;
 
-  if (!bucketId) {
-    throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty bucketId`);
+  if (!s3Path) {
+    throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty s3Path`);
   }
 
+  const [bucketId, ...prefixParts] = s3Path.split(PATH_DELIMITER).map(el => el.trim());
+  const prefix = prefixParts.join(PATH_DELIMITER);
+
   if (!mountPointPath) {
-    throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty mountPointPath`);
+    throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty mountPath`);
   }
 
   if (accessMode) {
-    if (!accessModeDictionary.has(accessMode)) {
+    if (!accessModeValuesSet.has(accessMode)) {
       throw new Error(
         `revision-storage-mounts: Line: '${input}' has wrong format. Invalid accessMode. Possible values: ${Array.from(
-          accessModeDictionary,
+          accessModeValuesSet,
         ).join(', ')}`,
       );
     }
 
-    readOnly = accessMode === 'read-only';
+    readOnly = accessModeReadOnlyValuesSet.has(accessMode);
   }
 
   return StorageMount.fromJSON({
