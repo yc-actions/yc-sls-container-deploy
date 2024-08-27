@@ -51,13 +51,16 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 
 ## Permissions
 
-To perform this action, it is required that the service account on behalf of which we are acting has granted the
-`serverless-containers.editor` role or greater.
+To perform this action, the service account on behalf of which we are acting must have the `serverless-containers.editor` role or higher.
 
-Optionally you may need to grant `iam.serviceAccounts.user` role if you provide the service account ID in params, so 
-the container service could assure that you have access to the service account.
+Additionally, you may need to grant the following optional roles depending on your specific needs:
 
-Also you may need to grant `serverless-containers.admin` if you want to make container public.
+| Optional Role                  | Required For                                                                 |
+|---------------------------------|------------------------------------------------------------------------------|
+| `iam.serviceAccounts.user`      | Providing the service account ID in parameters, ensuring access to the service account |
+| `vpc.user`                      | Deploying the container in a VPC with a specified network ID                |
+| `serverless-containers.admin`   | Making the container public                                                 |
+
 
 ## License Summary
 
