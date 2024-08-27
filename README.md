@@ -51,16 +51,29 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 
 ## Permissions
 
-To perform this action, the service account on behalf of which we are acting must have the `serverless-containers.editor` role or higher.
+### Deploy time permissions
+
+To perform this action, the service account on behalf of which we are acting must have
+the `serverless-containers.editor` role or higher.
 
 Additionally, you may need to grant the following optional roles depending on your specific needs:
 
-| Optional Role                  | Required For                                                                 |
-|---------------------------------|------------------------------------------------------------------------------|
-| `iam.serviceAccounts.user`      | Providing the service account ID in parameters, ensuring access to the service account |
-| `vpc.user`                      | Deploying the container in a VPC with a specified network ID                |
-| `serverless-containers.admin`   | Making the container public                                                 |
+| Optional Role                 | Required For                                                                           |
+|-------------------------------|----------------------------------------------------------------------------------------|
+| `iam.serviceAccounts.user`    | Providing the service account ID in parameters, ensuring access to the service account |
+| `vpc.user`                    | Deploying the container in a VPC with a specified network ID                           |
+| `serverless-containers.admin` | Making the container public                                                            |
 
+### Runtime permissions
+
+The service account provided to container via `revision-service-account-id` parameter must have the following roles:
+
+| Required Role                 | Required For                                                        |
+|-------------------------------|---------------------------------------------------------------------|
+| `storage.viewer`              | To mount the bucket to the container in read only mode.             |
+| `storage.editor`              | To mount the bucket to the container in read-write mode.            |
+| `lockbox.payloadViewer`       | To access the Lockbox secrets.                                      |
+| `kms.keys.encrypterDecrypter` | To decrypt the Lockbox secrets, if they are encrypted with KMS key. |
 
 ## License Summary
 
