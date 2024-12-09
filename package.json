@@ -28,7 +28,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.0",
     "@yandex-cloud/nodejs-sdk": "^2.7.7",
-    "yaml": "^2.6.0"
+    "yaml": "^2.6.1"
   },
   "devDependencies": {
     "@stylistic/eslint-plugin-ts": "^2.10.1",
