@@ -31,7 +31,7 @@
     "yaml": "^2.6.1"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin-ts": "^2.10.1",
+    "@stylistic/eslint-plugin-ts": "^2.12.1",
     "@swc/cli": "^0.5.2",
     "@swc/core": "^1.9.3",
     "@swc/jest": "^0.2.37",
