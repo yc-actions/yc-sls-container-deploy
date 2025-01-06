@@ -1,4 +1,4 @@
-import * as core from '@actions/core'
+import { error, getBooleanInput, getInput, getMultilineInput, info, setFailed, setOutput } from '@actions/core'
 import { context } from '@actions/github'
 import { decodeMessage, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
 
@@ -54,7 +54,7 @@ const createContainer = async (session: Session, folderId: string, containerName
     if (operation.response) {
         return decodeMessage<Container>(operation.response)
     }
-    core.error('failed to create container')
+    error('failed to create container')
     throw new Error('failed to create container')
 }
 
@@ -101,7 +101,7 @@ const createRevision = async (
     if (operation.response) {
         return decodeMessage<Revision>(operation.response)
     }
-    core.error('failed to create revision')
+    error('failed to create revision')
     throw new Error('failed to create revision')
 }
 
@@ -129,29 +129,29 @@ interface IRevisionInputs {
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
-    const imageUrl: string = core.getInput('revision-image-url')
-    const workingDir: string = core.getInput('revision-working-dir')
-    const serviceAccountId: string = core.getInput('revision-service-account-id')
-    const cores: number = Number.parseInt(core.getInput('revision-cores') || '1', 10)
-    const memory: number = parseMemory(core.getInput('revision-memory') || '128Mb')
-    const coreFraction: number = Number.parseInt(core.getInput('revision-core-fraction') || '100', 10)
-    const concurrency: number = Number.parseInt(core.getInput('revision-concurrency') || '1', 10)
-    const provisionedRaw: string = core.getInput('revision-provisioned')
-    const executionTimeout: number = Number.parseInt(core.getInput('revision-execution-timeout') || '3', 10)
-    const networkId: string = core.getInput('revision-network-id')
-    const commands: string[] = core.getMultilineInput('revision-commands')
+    const imageUrl: string = getInput('revision-image-url')
+    const workingDir: string = getInput('revision-working-dir')
+    const serviceAccountId: string = getInput('revision-service-account-id')
+    const cores: number = Number.parseInt(getInput('revision-cores') || '1', 10)
+    const memory: number = parseMemory(getInput('revision-memory') || '128Mb')
+    const coreFraction: number = Number.parseInt(getInput('revision-core-fraction') || '100', 10)
+    const concurrency: number = Number.parseInt(getInput('revision-concurrency') || '1', 10)
+    const provisionedRaw: string = getInput('revision-provisioned')
+    const executionTimeout: number = Number.parseInt(getInput('revision-execution-timeout') || '3', 10)
+    const networkId: string = getInput('revision-network-id')
+    const commands: string[] = getMultilineInput('revision-commands')
 
     const command = commands.length > 0 ? { command: commands } : undefined
-    const argList: string[] = core.getMultilineInput('revision-args')
+    const argList: string[] = getMultilineInput('revision-args')
 
     const args = argList.length > 0 ? { args: argList } : undefined
-    const environment: Environment = parseEnvironment(core.getMultilineInput('revision-env'))
-    const secrets: Secret[] = parseLockboxVariablesMapping(core.getMultilineInput('revision-secrets'))
+    const environment: Environment = parseEnvironment(getMultilineInput('revision-env'))
+    const secrets: Secret[] = parseLockboxVariablesMapping(getMultilineInput('revision-secrets'))
 
-    const logOptionsDisabled: boolean = core.getBooleanInput('revision-log-options-disabled')
-    const logOptionsLogGroupId: string | undefined = core.getInput('revision-log-options-log-group-id') || undefined
-    const logOptionsFolderId: string | undefined = core.getInput('revision-log-options-folder-id') || undefined
-    const logOptionsMinLevel: LogLevel_Level = parseLogOptionsMinLevel(core.getInput('revision-log-options-min-level'))
+    const logOptionsDisabled: boolean = getBooleanInput('revision-log-options-disabled')
+    const logOptionsLogGroupId: string | undefined = getInput('revision-log-options-log-group-id') || undefined
+    const logOptionsFolderId: string | undefined = getInput('revision-log-options-folder-id') || undefined
+    const logOptionsMinLevel: LogLevel_Level = parseLogOptionsMinLevel(getInput('revision-log-options-min-level'))
 
     if (!!logOptionsLogGroupId && !!logOptionsFolderId) {
         throw new Error(
@@ -159,9 +159,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
         )
     }
 
-    const storageMounts: StorageMount[] | undefined = parseStorageMounts(
-        core.getMultilineInput('revision-storage-mounts')
-    )
+    const storageMounts: StorageMount[] | undefined = parseStorageMounts(getMultilineInput('revision-storage-mounts'))
 
     const logOptions = LogOptions.fromJSON({
         disabled: logOptionsDisabled,
@@ -217,20 +215,20 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
 
 const run = async (): Promise<void> => {
     try {
-        core.info('start')
-        const ycSaJsonCredentials = core.getInput('yc-sa-json-credentials', {
+        info('start')
+        const ycSaJsonCredentials = getInput('yc-sa-json-credentials', {
             required: true
         })
 
-        const folderId: string = core.getInput('folder-id', {
+        const folderId: string = getInput('folder-id', {
             required: true
         })
-        const containerName: string = core.getInput('container-name', {
+        const containerName: string = getInput('container-name', {
             required: true
         })
         const revisionInputs = parseRevisionInputs()
 
-        core.info(`Folder ID: ${folderId}, container name: ${containerName}`)
+        info(`Folder ID: ${folderId}, container name: ${containerName}`)
 
         const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
         const session = new Session({ serviceAccountJson })
@@ -240,30 +238,30 @@ const run = async (): Promise<void> => {
 
         if (containersResponse.containers.length > 0) {
             containerId = containersResponse.containers[0].id
-            core.info(`Container with name: ${containerName} already exists and has id: ${containerId}`)
+            info(`Container with name: ${containerName} already exists and has id: ${containerId}`)
         } else {
-            core.info(`There is no container with name: ${containerName}. Creating a new one.`)
+            info(`There is no container with name: ${containerName}. Creating a new one.`)
             const resp = await createContainer(session, folderId, containerName)
 
             containerId = resp.id
-            core.info(`Container successfully created. Id: ${containerId}`)
+            info(`Container successfully created. Id: ${containerId}`)
         }
-        core.setOutput('id', containerId)
-        core.info('Creating new revision.')
+        setOutput('id', containerId)
+        info('Creating new revision.')
         const rev = await createRevision(session, containerId, revisionInputs)
 
-        core.info(`Revision created. Id: ${rev.id}`)
+        info(`Revision created. Id: ${rev.id}`)
 
-        core.setOutput('rev', rev.id)
+        setOutput('rev', rev.id)
 
-        if (core.getInput('public')) {
+        if (getInput('public')) {
             await makeContainerPublic(session, containerId)
-            core.info('Container is public now')
+            info('Container is public now')
         }
-    } catch (error) {
-        if (error instanceof Error) {
-            core.error(error)
-            core.setFailed(error.message)
+    } catch (err) {
+        if (err instanceof Error) {
+            error(err)
+            setFailed(err.message)
         }
     }
 }
@@ -308,7 +306,7 @@ export const parseEnvironment = (envLines: string[]): Environment => {
 
 // environmentVariable=id/versionId/key
 export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
-    core.info(`Secrets string: "${secrets}"`)
+    info(`Secrets string: "${secrets}"`)
     const secretsArr: Secret[] = []
 
     for (const line of secrets) {
@@ -317,7 +315,7 @@ export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
         secretsArr.push(secret)
     }
 
-    core.info(`SecretsObject: "${JSON.stringify(secretsArr)}"`)
+    info(`SecretsObject: "${JSON.stringify(secretsArr)}"`)
 
     return secretsArr
 }
