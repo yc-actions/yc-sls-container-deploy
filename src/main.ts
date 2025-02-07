@@ -1,6 +1,6 @@
 import { error, getBooleanInput, getInput, getMultilineInput, info, setFailed, setOutput } from '@actions/core'
 import { context } from '@actions/github'
-import { decodeMessage, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
 
 import {
     CreateContainerRequest,
@@ -259,10 +259,10 @@ const run = async (): Promise<void> => {
             info('Container is public now')
         }
     } catch (err) {
-        if (err instanceof Error) {
-            error(err)
-            setFailed(err.message)
+        if (err instanceof errors.ApiError) {
+            error(`${err.message}\nx-request-id: ${err.requestId}\nx-server-trace-id: ${err.serverTraceId}`)
         }
+        setFailed(err as Error)
     }
 }
 
