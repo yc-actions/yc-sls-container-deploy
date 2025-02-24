@@ -37,7 +37,7 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.16",
     "@swc/jest": "^0.2.37",
-    "@types/node": "^22.13.4",
+    "@types/node": "^22.13.5",
     "@typescript-eslint/eslint-plugin": "^8.24.1",
     "@typescript-eslint/parser": "^8.24.0",
     "@vercel/ncc": "^0.38.3",
