@@ -65,9 +65,9 @@ want to use. The action will use the first one it finds.
 ```yaml
       - name: Get Yandex Cloud IAM token
         id: get-iam-token
-        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:0.0.4
+        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
         with:
-          sa_id: aje***
+          yc-sa-id: aje***
 ```
 * `yc-sa-id` should contain Service Account ID. It can be obtained using `yc iam service-accounts list` command. It is
   used to exchange GitHub token for IAM token using Workload Identity Federation. More info in [Yandex Cloud IAM documentation](https://yandex.cloud/ru/docs/iam/concepts/workload-identity).
