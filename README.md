@@ -16,11 +16,20 @@ image name and tag.
 ## Usage
 
 ```yaml
-    - name: Login to Yandex Cloud Container Registry
-      id: login-cr
-      uses: yc-actions/yc-cr-login@v1
+    - uses: actions/checkout@v4
+    
+    - name: Get Yandex Cloud IAM token
+      id: get-iam-token
+      uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:0.0.4
       with:
-        yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+        sa_id: aje***
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: cr.yandex
+        username: iam
+        password: ${{ steps.get-iam-token.outputs.access_token }}
 
     - name: Build, tag, and push image to Yandex Cloud Container Registry
       env:
@@ -33,9 +42,9 @@ image name and tag.
 
     - name: Deploy Serverless Container
       id: deploy-sls-container
-      uses: yc-actions/yc-sls-container-deploy@v2
+      uses: yc-actions/yc-sls-container-deploy@v3
       with:
-        yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
+        yc-sa-id: aje***
         container-name: yc-action-demo
         folder-id: bbajn5q2d74c********
         revision-service-account-id: ajeqnasj95o7********
@@ -46,6 +55,23 @@ image name and tag.
         revision-image-url: cr.yandex/crp00000000000000000/my-cr-repo:${{ github.sha }}
         revision-execution-timeout: 10
 ```
+
+One of `yc-sa-json-credentials`, `yc-iam-token` or `yc-sa-id` should be provided depending on the authentication method you
+want to use. The action will use the first one it finds.
+* `yc-sa-json-credentials` should contain JSON with authorized key for Service Account. More info
+  in [Yandex Cloud IAM documentation](https://yandex.cloud/en/docs/iam/operations/authentication/manage-authorized-keys#cli_1).
+* `yc-iam-token` should contain IAM token. It can be obtained using `yc iam create-token` command or using
+  [yc-actions/yc-iam-token-fed](https://github.com/yc-actions/yc-iam-token-fed)
+```yaml
+      - name: Get Yandex Cloud IAM token
+        id: get-iam-token
+        uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:0.0.4
+        with:
+          sa_id: aje***
+```
+* `yc-sa-id` should contain Service Account ID. It can be obtained using `yc iam service-accounts list` command. It is
+  used to exchange GitHub token for IAM token using Workload Identity Federation. More info in [Yandex Cloud IAM documentation](https://yandex.cloud/ru/docs/iam/concepts/workload-identity).
+
 
 See [action.yml](action.yml) for the full documentation for this action's inputs and outputs.
 

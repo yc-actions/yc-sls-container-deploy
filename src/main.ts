@@ -1,6 +1,16 @@
-import { error, getBooleanInput, getInput, getMultilineInput, info, setFailed, setOutput } from '@actions/core'
+import {
+    error,
+    getBooleanInput,
+    getIDToken,
+    getInput,
+    getMultilineInput,
+    info,
+    setFailed,
+    setOutput
+} from '@actions/core'
 import { context } from '@actions/github'
 import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import axios from 'axios'
 
 import {
     CreateContainerRequest,
@@ -20,6 +30,7 @@ import { parseMemory } from './memory'
 import { parseLogOptionsMinLevel } from './log-options-min-level'
 import { parseStorageMounts } from './storage-mounts'
 import { fromServiceAccountJsonFile } from './service-account-json'
+import { SessionConfig } from '@yandex-cloud/nodejs-sdk/dist/types'
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T
 
@@ -216,9 +227,28 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
 const run = async (): Promise<void> => {
     try {
         info('start')
-        const ycSaJsonCredentials = getInput('yc-sa-json-credentials', {
-            required: true
-        })
+        let sessionConfig: SessionConfig = {}
+        const ycSaJsonCredentials = getInput('yc-sa-json-credentials')
+        const ycIamToken = getInput('yc-iam-token')
+        const ycSaId = getInput('yc-sa-id')
+        if (ycSaJsonCredentials !== '') {
+            const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
+            info('Parsed Service account JSON')
+            sessionConfig = { serviceAccountJson }
+        } else if (ycIamToken !== '') {
+            sessionConfig = { iamToken: ycIamToken }
+            info('Using IAM token')
+        } else if (ycSaId !== '') {
+            const ghToken = await getIDToken()
+            if (!ghToken) {
+                throw new Error('No credentials provided')
+            }
+            const saToken = await exchangeToken(ghToken, ycSaId)
+            sessionConfig = { iamToken: saToken }
+        } else {
+            throw new Error('No credentials')
+        }
+        const session = new Session(sessionConfig)
 
         const folderId: string = getInput('folder-id', {
             required: true
@@ -229,10 +259,6 @@ const run = async (): Promise<void> => {
         const revisionInputs = parseRevisionInputs()
 
         info(`Folder ID: ${folderId}, container name: ${containerName}`)
-
-        const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
-        const session = new Session({ serviceAccountJson })
-
         const containersResponse = await findContainerByName(session, folderId, containerName)
         let containerId: string
 
@@ -318,6 +344,33 @@ export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
     info(`SecretsObject: "${JSON.stringify(secretsArr)}"`)
 
     return secretsArr
+}
+
+async function exchangeToken(token: string, saId: string): Promise<string> {
+    info(`Exchanging token for service account ${saId}`)
+    const res = await axios.post(
+        'https://auth.yandex.cloud/oauth/token',
+        {
+            grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+            requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+            audience: saId,
+            subject_token: token,
+            subject_token_type: 'urn:ietf:params:oauth:token-type:id_token'
+        },
+        {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        }
+    )
+    if (res.status !== 200) {
+        throw new Error(`Failed to exchange token: ${res.status} ${res.statusText}`)
+    }
+    if (!res.data.access_token) {
+        throw new Error(`Failed to exchange token: ${res.data.error} ${res.data.error_description}`)
+    }
+    info(`Token exchanged successfully`)
+    return res.data.access_token
 }
 
 run()
