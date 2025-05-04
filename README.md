@@ -20,16 +20,16 @@ image name and tag.
     
     - name: Get Yandex Cloud IAM token
       id: get-iam-token
-      uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:0.0.4
+      uses: docker://ghcr.io/yc-actions/yc-iam-token-fed:1.0.0
       with:
-        sa_id: aje***
+        yc-sa-id: aje***
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         registry: cr.yandex
         username: iam
-        password: ${{ steps.get-iam-token.outputs.access_token }}
+        password: ${{ steps.get-iam-token.outputs.token }}
 
     - name: Build, tag, and push image to Yandex Cloud Container Registry
       env:
