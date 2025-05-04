@@ -40,7 +40,7 @@
     "@swc/jest": "^0.2.38",
     "@types/node": "^22.14.1",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
-    "@typescript-eslint/parser": "^8.31.0",
+    "@typescript-eslint/parser": "^8.31.1",
     "@vercel/ncc": "^0.38.3",
     "eslint": "^9.25.1",
     "eslint-import-resolver-typescript": "^4.3.4",
