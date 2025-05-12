@@ -26,7 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.0",
+    "@actions/github": "^6.0.1",
     "@yandex-cloud/nodejs-sdk": "^2.8.0",
     "yaml": "^2.7.1",
     "axios": "^1.9.0"
