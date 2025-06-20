@@ -89,6 +89,7 @@ Additionally, you may need to grant the following optional roles depending on yo
 | `iam.serviceAccounts.user`    | Providing the service account ID in parameters, ensuring access to the service account |
 | `vpc.user`                    | Deploying the container in a VPC with a specified network ID                           |
 | `serverless-containers.admin` | Making the container public                                                            |
+| `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly. |
 
 ### Runtime permissions
 
