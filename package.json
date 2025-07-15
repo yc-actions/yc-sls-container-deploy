@@ -37,7 +37,7 @@
     "@stylistic/eslint-plugin-ts": "^4.4.1",
     "@swc/cli": "^0.7.7",
     "@swc/core": "^1.12.9",
-    "@swc/jest": "^0.2.38",
+    "@swc/jest": "^0.2.39",
     "@types/node": "^24.0.10",
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.36.0",
