@@ -9,7 +9,8 @@ import {
     setOutput
 } from '@actions/core'
 import { context } from '@actions/github'
-import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import { errors, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import { containerService } from '@yandex-cloud/nodejs-sdk/serverless-containers-v1'
 import axios from 'axios'
 
 import {
@@ -39,7 +40,7 @@ const findContainerByName = async (
     folderId: string,
     containerName: string
 ): Promise<ListContainersResponse> => {
-    const client = session.client(serviceClients.ContainerServiceClient)
+    const client = session.client(containerService.ContainerServiceClient)
 
     return client.list(
         ListContainersRequest.fromPartial({
@@ -52,7 +53,7 @@ const findContainerByName = async (
 
 const createContainer = async (session: Session, folderId: string, containerName: string): Promise<Container> => {
     const { repo } = context
-    const client = session.client(serviceClients.ContainerServiceClient)
+    const client = session.client(containerService.ContainerServiceClient)
     const containerCreateOperation = await client.create(
         CreateContainerRequest.fromPartial({
             folderId,
@@ -63,7 +64,7 @@ const createContainer = async (session: Session, folderId: string, containerName
     const operation = await waitForOperation(containerCreateOperation, session)
 
     if (operation.response) {
-        return decodeMessage<Container>(operation.response)
+        return Container.decode(operation.response.value)
     }
     error('failed to create container')
     throw new Error('failed to create container')
@@ -74,7 +75,7 @@ const createRevision = async (
     containerId: string,
     revisionInputs: IRevisionInputs
 ): Promise<Revision> => {
-    const client = session.client(serviceClients.ContainerServiceClient)
+    const client = session.client(containerService.ContainerServiceClient)
     const req = {
         containerId,
         resources: {
@@ -110,7 +111,7 @@ const createRevision = async (
     const operation = await waitForOperation(revisionDeployOperation, session)
 
     if (operation.response) {
-        return decodeMessage<Revision>(operation.response)
+        return Revision.decode(operation.response.value)
     }
     error('failed to create revision')
     throw new Error('failed to create revision')
@@ -206,7 +207,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
 }
 
 const makeContainerPublic = async (session: Session, containerId: string): Promise<void> => {
-    const client = session.client(serviceClients.ContainerServiceClient)
+    const client = session.client(containerService.ContainerServiceClient)
 
     await client.setAccessBindings(
         SetAccessBindingsRequest.fromPartial({
@@ -224,7 +225,7 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
     )
 }
 
-const run = async (): Promise<void> => {
+export const run = async (): Promise<void> => {
     try {
         info('start')
         let sessionConfig: SessionConfig = {}
@@ -372,5 +373,3 @@ async function exchangeToken(token: string, saId: string): Promise<string> {
     info(`Token exchanged successfully`)
     return res.data.access_token
 }
-
-run()
