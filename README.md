@@ -42,7 +42,7 @@ image name and tag.
 
     - name: Deploy Serverless Container
       id: deploy-sls-container
-      uses: yc-actions/yc-sls-container-deploy@v3
+      uses: yc-actions/yc-sls-container-deploy@v4
       with:
         yc-sa-id: aje***
         container-name: yc-action-demo
