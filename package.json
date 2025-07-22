@@ -1,6 +1,6 @@
 {
   "name": "yc-actions-yc-sls-container-deploy",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "GitHub Action to deploy Serverless Container to Yandex Cloud",
   "main": "lib/src/index.js",
   "scripts": {
@@ -29,6 +29,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
     "@grpc/grpc-js": "^1.13.4",
+    "@supercharge/promise-pool": "^3.2.0",
     "@yandex-cloud/nodejs-sdk": "^3.0.0-beta.1",
     "axios": "^1.11.0",
     "yaml": "^2.8.0"

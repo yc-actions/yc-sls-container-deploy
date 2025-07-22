@@ -24430,6 +24430,934 @@ utf8.write = function utf8_write(string, buffer, offset) {
 
 /***/ }),
 
+/***/ 38752:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ 15299:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const promise_pool_1 = __nccwpck_require__(92333);
+exports["default"] = promise_pool_1.PromisePool;
+__exportStar(__nccwpck_require__(38752), exports);
+__exportStar(__nccwpck_require__(92333), exports);
+__exportStar(__nccwpck_require__(98130), exports);
+__exportStar(__nccwpck_require__(75521), exports);
+__exportStar(__nccwpck_require__(98691), exports);
+__exportStar(__nccwpck_require__(49403), exports);
+
+
+/***/ }),
+
+/***/ 98130:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PromisePoolError = void 0;
+class PromisePoolError extends Error {
+    /**
+     * Create a new instance for the given `message` and `item`.
+     *
+     * @param error  The original error
+     * @param item   The item causing the error
+     */
+    constructor(error, item) {
+        super();
+        this.raw = error;
+        this.item = item;
+        this.name = this.constructor.name;
+        this.message = this.messageFrom(error);
+        if (Error.captureStackTrace && typeof Error.captureStackTrace === 'function') {
+            Error.captureStackTrace(this, this.constructor);
+        }
+    }
+    /**
+     * Returns a new promise pool error instance wrapping the `error` and `item`.
+     *
+     * @param {*} error
+     * @param {*} item
+     *
+     * @returns {PromisePoolError}
+     */
+    static createFrom(error, item) {
+        return new this(error, item);
+    }
+    /**
+     * Returns the error message from the given `error`.
+     *
+     * @param {*} error
+     *
+     * @returns {String}
+     */
+    messageFrom(error) {
+        if (error instanceof Error) {
+            return error.message;
+        }
+        if (typeof error === 'object') {
+            return error.message;
+        }
+        if (typeof error === 'string' || typeof error === 'number') {
+            return error.toString();
+        }
+        return '';
+    }
+}
+exports.PromisePoolError = PromisePoolError;
+
+
+/***/ }),
+
+/***/ 33755:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PromisePoolExecutor = void 0;
+const promise_pool_1 = __nccwpck_require__(92333);
+const validation_error_1 = __nccwpck_require__(49403);
+const promise_pool_error_1 = __nccwpck_require__(98130);
+const stop_the_promise_pool_error_1 = __nccwpck_require__(98691);
+class PromisePoolExecutor {
+    /**
+     * Creates a new promise pool executer instance with a default concurrency of 10.
+     */
+    constructor() {
+        this.meta = {
+            tasks: [],
+            items: [],
+            errors: [],
+            results: [],
+            stopped: false,
+            concurrency: 10,
+            shouldResultsCorrespond: false,
+            processedItems: [],
+            taskTimeout: 0
+        };
+        this.handler = (item) => item;
+        this.errorHandler = undefined;
+        this.onTaskStartedHandlers = [];
+        this.onTaskFinishedHandlers = [];
+    }
+    /**
+     * Set the number of tasks to process concurrently the promise pool.
+     *
+     * @param {Integer} concurrency
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    useConcurrency(concurrency) {
+        if (!this.isValidConcurrency(concurrency)) {
+            throw validation_error_1.ValidationError.createFrom(`"concurrency" must be a number, 1 or up. Received "${concurrency}" (${typeof concurrency})`);
+        }
+        this.meta.concurrency = concurrency;
+        return this;
+    }
+    /**
+     * Determine whether the given `concurrency` value is valid.
+     *
+     * @param {Number} concurrency
+     *
+     * @returns {Boolean}
+     */
+    isValidConcurrency(concurrency) {
+        return typeof concurrency === 'number' && concurrency >= 1;
+    }
+    /**
+     * Set the timeout in ms for the pool handler
+     *
+     * @param {Number} timeout
+     *
+     * @returns {PromisePool}
+     */
+    withTaskTimeout(timeout) {
+        this.meta.taskTimeout = timeout;
+        return this;
+    }
+    /**
+     * Returns the number of concurrently processed tasks.
+     *
+     * @returns {Number}
+     */
+    concurrency() {
+        return this.meta.concurrency;
+    }
+    /**
+     * Assign whether to keep corresponding results between source items and resulting tasks.
+     */
+    useCorrespondingResults(shouldResultsCorrespond) {
+        this.meta.shouldResultsCorrespond = shouldResultsCorrespond;
+        return this;
+    }
+    /**
+     * Determine whether to keep corresponding results between source items and resulting tasks.
+     */
+    shouldUseCorrespondingResults() {
+        return this.meta.shouldResultsCorrespond;
+    }
+    /**
+     * Returns the task timeout in milliseconds.
+     */
+    taskTimeout() {
+        return this.meta.taskTimeout;
+    }
+    /**
+     * Set the items to be processed in the promise pool.
+     *
+     * @param {Array} items
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    for(items) {
+        this.meta.items = items;
+        return this;
+    }
+    /**
+     * Returns the list of items to process.
+     *
+     * @returns {T[] | Iterable<T> | AsyncIterable<T>}
+     */
+    items() {
+        return this.meta.items;
+    }
+    /**
+     * Returns the number of items to process, or `NaN` if items are not an array.
+     *
+     * @returns {Number}
+     */
+    itemsCount() {
+        const items = this.items();
+        return Array.isArray(items) ? items.length : NaN;
+    }
+    /**
+     * Returns the list of active tasks.
+     *
+     * @returns {Array}
+     */
+    tasks() {
+        return this.meta.tasks;
+    }
+    /**
+     * Returns the number of currently active tasks.
+     *
+     * @returns {Number}
+     *
+     * @deprecated use the `activeTasksCount()` method (plural naming) instead
+     */
+    activeTaskCount() {
+        return this.activeTasksCount();
+    }
+    /**
+     * Returns the number of currently active tasks.
+     *
+     * @returns {Number}
+     */
+    activeTasksCount() {
+        return this.tasks().length;
+    }
+    /**
+     * Returns the list of processed items.
+     *
+     * @returns {T[]}
+     */
+    processedItems() {
+        return this.meta.processedItems;
+    }
+    /**
+     * Returns the number of processed items.
+     *
+     * @returns {Number}
+     */
+    processedCount() {
+        return this.processedItems().length;
+    }
+    /**
+     * Returns the percentage progress of items that have been processed, or `NaN` if items is not an array.
+     */
+    processedPercentage() {
+        return (this.processedCount() / this.itemsCount()) * 100;
+    }
+    /**
+     * Returns the list of results.
+     *
+     * @returns {R[]}
+     */
+    results() {
+        return this.meta.results;
+    }
+    /**
+     * Returns the list of errors.
+     *
+     * @returns {Array<PromisePoolError<T>>}
+     */
+    errors() {
+        return this.meta.errors;
+    }
+    /**
+     * Set the handler that is applied to each item.
+     *
+     * @param {Function} action
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    withHandler(action) {
+        this.handler = action;
+        return this;
+    }
+    /**
+     * Determine whether a custom error handle is available.
+     *
+     * @returns {Boolean}
+     */
+    hasErrorHandler() {
+        return !!this.errorHandler;
+    }
+    /**
+     * Set the error handler function to execute when an error occurs.
+     *
+     * @param {Function} errorHandler
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    handleError(handler) {
+        this.errorHandler = handler;
+        return this;
+    }
+    /**
+     * Set the handler function to execute when started a task.
+     *
+     * @param {Function} handler
+     *
+     * @returns {this}
+     */
+    onTaskStarted(handlers) {
+        this.onTaskStartedHandlers = handlers;
+        return this;
+    }
+    /**
+      * Assign the given callback `handler` function to run when a task finished.
+     *
+     * @param {OnProgressCallback<T>} handlers
+     *
+     * @returns {this}
+     */
+    onTaskFinished(handlers) {
+        this.onTaskFinishedHandlers = handlers;
+        return this;
+    }
+    /**
+     * Determines whether the number of active tasks is greater or equal to the concurrency limit.
+     *
+     * @returns {Boolean}
+     */
+    hasReachedConcurrencyLimit() {
+        return this.activeTasksCount() >= this.concurrency();
+    }
+    /**
+     * Stop a promise pool processing.
+     */
+    stop() {
+        this.markAsStopped();
+        throw new stop_the_promise_pool_error_1.StopThePromisePoolError();
+    }
+    /**
+     * Mark the promise pool as stopped.
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    markAsStopped() {
+        this.meta.stopped = true;
+        return this;
+    }
+    /**
+     * Determine whether the pool is stopped.
+     *
+     * @returns {Boolean}
+     */
+    isStopped() {
+        return this.meta.stopped;
+    }
+    /**
+     * Start processing the promise pool.
+     *
+     * @returns {ReturnValue}
+     */
+    async start() {
+        return await this
+            .validateInputs()
+            .prepareResultsArray()
+            .process();
+    }
+    /**
+     * Determine whether the pool should stop.
+     *
+     * @returns {PromisePoolExecutor}
+     *
+     * @throws
+     */
+    validateInputs() {
+        if (typeof this.handler !== 'function') {
+            throw validation_error_1.ValidationError.createFrom('The first parameter for the .process(fn) method must be a function');
+        }
+        const timeout = this.taskTimeout();
+        if (!(timeout == null || (typeof timeout === 'number' && timeout >= 0))) {
+            throw validation_error_1.ValidationError.createFrom(`"timeout" must be undefined or a number. A number must be 0 or up. Received "${String(timeout)}" (${typeof timeout})`);
+        }
+        if (!this.areItemsValid()) {
+            throw validation_error_1.ValidationError.createFrom(`"items" must be an array, an iterable or an async iterable. Received "${typeof this.items()}"`);
+        }
+        if (this.errorHandler && typeof this.errorHandler !== 'function') {
+            throw validation_error_1.ValidationError.createFrom(`The error handler must be a function. Received "${typeof this.errorHandler}"`);
+        }
+        this.onTaskStartedHandlers.forEach(handler => {
+            if (handler && typeof handler !== 'function') {
+                throw validation_error_1.ValidationError.createFrom(`The onTaskStarted handler must be a function. Received "${typeof handler}"`);
+            }
+        });
+        this.onTaskFinishedHandlers.forEach(handler => {
+            if (handler && typeof handler !== 'function') {
+                throw validation_error_1.ValidationError.createFrom(`The error handler must be a function. Received "${typeof handler}"`);
+            }
+        });
+        return this;
+    }
+    areItemsValid() {
+        const items = this.items();
+        if (Array.isArray(items))
+            return true;
+        if (typeof items[Symbol.iterator] === 'function')
+            return true;
+        if (typeof items[Symbol.asyncIterator] === 'function')
+            return true;
+        return false;
+    }
+    /**
+     * Prefill the results array with `notRun` symbol values if results should correspond.
+     */
+    prepareResultsArray() {
+        const items = this.items();
+        if (!Array.isArray(items))
+            return this;
+        if (!this.shouldUseCorrespondingResults())
+            return this;
+        this.meta.results = Array(items.length).fill(promise_pool_1.PromisePool.notRun);
+        return this;
+    }
+    /**
+     * Starts processing the promise pool by iterating over the items
+     * and running each item through the async `callback` function.
+     *
+     * @param {Function} callback
+     *
+     * @returns {Promise}
+     */
+    async process() {
+        let index = 0;
+        for await (const item of this.items()) {
+            if (this.isStopped()) {
+                break;
+            }
+            if (this.shouldUseCorrespondingResults()) {
+                this.results()[index] = promise_pool_1.PromisePool.notRun;
+            }
+            this.startProcessing(item, index);
+            index += 1;
+            // don't consume the next item from iterable
+            // until there's a free slot for a new task
+            await this.waitForProcessingSlot();
+        }
+        return await this.drained();
+    }
+    /**
+     * Wait for one of the active tasks to finish processing.
+     */
+    async waitForProcessingSlot() {
+        /**
+         * We’re using a while loop here because it’s possible to decrease the pool’s
+         * concurrency at runtime. We need to wait for as many tasks as needed to
+         * finish processing before moving on to process the remaining tasks.
+         */
+        while (this.hasReachedConcurrencyLimit()) {
+            await this.waitForActiveTaskToFinish();
+        }
+    }
+    /**
+     * Wait for the next, currently active task to finish processing.
+     */
+    async waitForActiveTaskToFinish() {
+        await Promise.race(this.tasks());
+    }
+    /**
+     * Create a processing function for the given `item`.
+     *
+     * @param {T} item
+     * @param {number} index
+     */
+    startProcessing(item, index) {
+        const task = this.createTaskFor(item, index)
+            .then(result => {
+            this.save(result, index).removeActive(task);
+        })
+            .catch(async (error) => {
+            await this.handleErrorFor(error, item, index);
+            this.removeActive(task);
+        })
+            .finally(() => {
+            this.processedItems().push(item);
+            this.runOnTaskFinishedHandlers(item);
+        });
+        this.tasks().push(task);
+        this.runOnTaskStartedHandlers(item);
+    }
+    /**
+     * Ensures a returned promise for the processing of the given `item`.
+     *
+     * @param {T} item
+     * @param {number} index
+     *
+     * @returns {*}
+     */
+    async createTaskFor(item, index) {
+        if (this.taskTimeout() === undefined) {
+            return this.handler(item, index, this);
+        }
+        const [timer, canceller] = this.createTaskTimeout(item);
+        return Promise.race([
+            this.handler(item, index, this),
+            timer(),
+        ]).finally(canceller);
+    }
+    /**
+     * Returns a tuple of a timer function and a canceller function that
+     * times-out after the configured task timeout.
+     */
+    createTaskTimeout(item) {
+        let timerId;
+        const timer = async () => new Promise((_resolve, reject) => {
+            timerId = setTimeout(() => {
+                reject(new promise_pool_error_1.PromisePoolError(`Task in promise pool timed out after ${this.taskTimeout()}ms`, item));
+            }, this.taskTimeout());
+        });
+        const canceller = () => clearTimeout(timerId);
+        return [timer, canceller];
+    }
+    /**
+     * Save the given calculation `result`, possibly at the provided `position`.
+     *
+     * @param {*} result
+     * @param {number} position
+     *
+     * @returns {PromisePoolExecutor}
+     */
+    save(result, position) {
+        this.shouldUseCorrespondingResults()
+            ? this.results()[position] = result
+            : this.results().push(result);
+        return this;
+    }
+    /**
+     * Remove the given `task` from the list of active tasks.
+     *
+     * @param {Promise} task
+     */
+    removeActive(task) {
+        this.tasks().splice(this.tasks().indexOf(task), 1);
+        return this;
+    }
+    /**
+     * Create and save an error for the the given `item`.
+     *
+     * @param {Error} error
+     * @param {T} item
+     * @param {number} index
+     */
+    async handleErrorFor(error, item, index) {
+        if (this.shouldUseCorrespondingResults()) {
+            this.results()[index] = promise_pool_1.PromisePool.failed;
+        }
+        if (this.isStoppingThePoolError(error)) {
+            return;
+        }
+        if (this.isValidationError(error)) {
+            this.markAsStopped();
+            throw error;
+        }
+        this.hasErrorHandler()
+            ? await this.runErrorHandlerFor(error, item)
+            : this.saveErrorFor(error, item);
+    }
+    /**
+     * Determine whether the given `error` is a `StopThePromisePoolError` instance.
+     *
+     * @param {Error} error
+     *
+     * @returns {Boolean}
+     */
+    isStoppingThePoolError(error) {
+        return error instanceof stop_the_promise_pool_error_1.StopThePromisePoolError;
+    }
+    /**
+     * Determine whether the given `error` is a `ValidationError` instance.
+     *
+     * @param {Error} error
+     *
+     * @returns {Boolean}
+     */
+    isValidationError(error) {
+        return error instanceof validation_error_1.ValidationError;
+    }
+    /**
+     * Run the user’s error handler, if available.
+     *
+     * @param {Error} processingError
+     * @param {T} item
+     */
+    async runErrorHandlerFor(processingError, item) {
+        try {
+            await this.errorHandler?.(processingError, item, this);
+        }
+        catch (error) {
+            this.rethrowIfNotStoppingThePool(error);
+        }
+    }
+    /**
+     * Run the onTaskStarted handlers.
+     */
+    runOnTaskStartedHandlers(item) {
+        this.onTaskStartedHandlers.forEach(handler => {
+            handler(item, this);
+        });
+    }
+    /**
+     * Run the onTaskFinished handlers.
+     */
+    runOnTaskFinishedHandlers(item) {
+        this.onTaskFinishedHandlers.forEach(handler => {
+            handler(item, this);
+        });
+    }
+    /**
+     * Rethrow the given `error` if it’s not an instance of `StopThePromisePoolError`.
+     *
+     * @param {Error} error
+     */
+    rethrowIfNotStoppingThePool(error) {
+        if (this.isStoppingThePoolError(error)) {
+            return;
+        }
+        throw error;
+    }
+    /**
+     * Create and save an error for the the given `item`.
+     *
+     * @param {T} item
+     */
+    saveErrorFor(error, item) {
+        this.errors().push(promise_pool_error_1.PromisePoolError.createFrom(error, item));
+    }
+    /**
+     * Wait for all active tasks to finish. Once all the tasks finished
+     * processing, returns an object containing the results and errors.
+     *
+     * @returns {Object}
+     */
+    async drained() {
+        await this.drainActiveTasks();
+        return {
+            errors: this.errors(),
+            results: this.results()
+        };
+    }
+    /**
+     * Wait for all of the active tasks to finish processing.
+     */
+    async drainActiveTasks() {
+        await Promise.all(this.tasks());
+    }
+}
+exports.PromisePoolExecutor = PromisePoolExecutor;
+
+
+/***/ }),
+
+/***/ 92333:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PromisePool = void 0;
+const promise_pool_executor_1 = __nccwpck_require__(33755);
+class PromisePool {
+    /**
+     * Instantiates a new promise pool with a default `concurrency: 10` and `items: []`.
+     *
+     * @param {Object} options
+     */
+    constructor(items) {
+        this.timeout = undefined;
+        this.concurrency = 10;
+        this.items = items ?? [];
+        this.errorHandler = undefined;
+        this.onTaskStartedHandlers = [];
+        this.onTaskFinishedHandlers = [];
+        this.shouldResultsCorrespond = false;
+    }
+    /**
+     * Set the number of tasks to process concurrently in the promise pool.
+     *
+     * @param {Integer} concurrency
+     *
+     * @returns {PromisePool}
+     */
+    withConcurrency(concurrency) {
+        this.concurrency = concurrency;
+        return this;
+    }
+    /**
+     * Set the number of tasks to process concurrently in the promise pool.
+     *
+     * @param {Number} concurrency
+     *
+     * @returns {PromisePool}
+     */
+    static withConcurrency(concurrency) {
+        return new this().withConcurrency(concurrency);
+    }
+    /**
+     * Set the timeout in milliseconds for the pool handler.
+     *
+     * @param {Number} timeout
+     *
+     * @returns {PromisePool}
+     */
+    withTaskTimeout(timeout) {
+        this.timeout = timeout;
+        return this;
+    }
+    /**
+     * Set the timeout in milliseconds for the pool handler.
+     *
+     * @param {Number} timeout
+     *
+     * @returns {PromisePool}
+     */
+    static withTaskTimeout(timeout) {
+        return new this().withTaskTimeout(timeout);
+    }
+    /**
+     * Set the items to be processed in the promise pool.
+     *
+     * @param {SomeIterable<ItemType>} items
+     *
+     * @returns {PromisePool}
+     */
+    for(items) {
+        const pool = new PromisePool(items).withConcurrency(this.concurrency);
+        if (typeof this.errorHandler === 'function') {
+            pool.handleError(this.errorHandler);
+        }
+        return typeof this.timeout === 'number'
+            ? pool.withTaskTimeout(this.timeout)
+            : pool;
+    }
+    /**
+     * Set the items to be processed in the promise pool.
+     *
+     * @param {T[] | Iterable<T> | AsyncIterable<T>} items
+     *
+     * @returns {PromisePool}
+     */
+    static for(items) {
+        return new this().for(items);
+    }
+    /**
+     * Set the error handler function to execute when an error occurs.
+     *
+     * @param {ErrorHandler<T>} handler
+     *
+     * @returns {PromisePool}
+     */
+    handleError(handler) {
+        this.errorHandler = handler;
+        return this;
+    }
+    /**
+     * Assign the given callback `handler` function to run when a task starts.
+     *
+     * @param {OnProgressCallback<T>} handler
+     *
+     * @returns {PromisePool}
+     */
+    onTaskStarted(handler) {
+        this.onTaskStartedHandlers.push(handler);
+        return this;
+    }
+    /**
+     * Assign the given callback `handler` function to run when a task finished.
+     *
+     * @param {OnProgressCallback<T>} handler
+     *
+     * @returns {PromisePool}
+     */
+    onTaskFinished(handler) {
+        this.onTaskFinishedHandlers.push(handler);
+        return this;
+    }
+    /**
+     * Assign whether to keep corresponding results between source items and resulting tasks.
+     */
+    useCorrespondingResults() {
+        this.shouldResultsCorrespond = true;
+        return this;
+    }
+    /**
+     * Starts processing the promise pool by iterating over the items
+     * and running each item through the async `callback` function.
+     *
+     * @param {ProcessHandler} The async processing function receiving each item from the `items` array.
+     *
+     * @returns Promise<{ results, errors }>
+     */
+    async process(callback) {
+        return new promise_pool_executor_1.PromisePoolExecutor()
+            .useConcurrency(this.concurrency)
+            .useCorrespondingResults(this.shouldResultsCorrespond)
+            .withTaskTimeout(this.timeout)
+            .withHandler(callback)
+            .handleError(this.errorHandler)
+            .onTaskStarted(this.onTaskStartedHandlers)
+            .onTaskFinished(this.onTaskFinishedHandlers)
+            .for(this.items)
+            .start();
+    }
+}
+exports.PromisePool = PromisePool;
+PromisePool.notRun = Symbol('notRun');
+PromisePool.failed = Symbol('failed');
+
+
+/***/ }),
+
+/***/ 75521:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ 98691:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StopThePromisePoolError = void 0;
+class StopThePromisePoolError extends Error {
+}
+exports.StopThePromisePoolError = StopThePromisePoolError;
+
+
+/***/ }),
+
+/***/ 49403:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ValidationError = void 0;
+class ValidationError extends Error {
+    /**
+     * Create a new instance for the given `message`.
+     *
+     * @param message  The error message
+     */
+    constructor(message) {
+        super(message);
+        if (Error.captureStackTrace && typeof Error.captureStackTrace === 'function') {
+            Error.captureStackTrace(this, this.constructor);
+        }
+    }
+    /**
+     * Returns a validation error with the given `message`.
+     */
+    static createFrom(message) {
+        return new this(message);
+    }
+}
+exports.ValidationError = ValidationError;
+
+
+/***/ }),
+
+/***/ 8245:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+// generated file
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.secretService = exports.secret = exports.payloadService = exports.payload = void 0;
+exports.payload = __importStar(__nccwpck_require__(76838));
+exports.payloadService = __importStar(__nccwpck_require__(69830));
+exports.secret = __importStar(__nccwpck_require__(65250));
+exports.secretService = __importStar(__nccwpck_require__(15266));
+
+
+/***/ }),
+
 /***/ 31574:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -25238,6 +26166,453 @@ var globalThis = (() => {
         return global;
     throw 'Unable to locate global object';
 })();
+function longToNumber(long) {
+    if (long.gt(Number.MAX_SAFE_INTEGER)) {
+        throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+    }
+    return long.toNumber();
+}
+if (minimal_1.default.util.Long !== long_1.default) {
+    minimal_1.default.util.Long = long_1.default;
+    minimal_1.default.configure();
+}
+
+
+/***/ }),
+
+/***/ 84327:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BytesValue = exports.StringValue = exports.BoolValue = exports.UInt32Value = exports.Int32Value = exports.UInt64Value = exports.Int64Value = exports.FloatValue = exports.DoubleValue = exports.protobufPackage = void 0;
+/* eslint-disable */
+const long_1 = __importDefault(__nccwpck_require__(66390));
+const minimal_1 = __importDefault(__nccwpck_require__(37823));
+exports.protobufPackage = 'google.protobuf';
+const baseDoubleValue = { value: 0 };
+exports.DoubleValue = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(9).double(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseDoubleValue);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.double();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseDoubleValue);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseDoubleValue);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseFloatValue = { value: 0 };
+exports.FloatValue = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(13).float(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseFloatValue);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.float();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseFloatValue);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseFloatValue);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseInt64Value = { value: 0 };
+exports.Int64Value = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(8).int64(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseInt64Value);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = longToNumber(reader.int64());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseInt64Value);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = Math.round(message.value));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseInt64Value);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseUInt64Value = { value: 0 };
+exports.UInt64Value = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(8).uint64(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseUInt64Value);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = longToNumber(reader.uint64());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseUInt64Value);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = Math.round(message.value));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseUInt64Value);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseInt32Value = { value: 0 };
+exports.Int32Value = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(8).int32(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseInt32Value);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.int32();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseInt32Value);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = Math.round(message.value));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseInt32Value);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseUInt32Value = { value: 0 };
+exports.UInt32Value = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== 0) {
+            writer.uint32(8).uint32(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseUInt32Value);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.uint32();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseUInt32Value);
+        message.value =
+            object.value !== undefined && object.value !== null ? Number(object.value) : 0;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = Math.round(message.value));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseUInt32Value);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : 0;
+        return message;
+    },
+};
+const baseBoolValue = { value: false };
+exports.BoolValue = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value === true) {
+            writer.uint32(8).bool(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseBoolValue);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.bool();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseBoolValue);
+        message.value =
+            object.value !== undefined && object.value !== null ? Boolean(object.value) : false;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseBoolValue);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : false;
+        return message;
+    },
+};
+const baseStringValue = { value: '' };
+exports.StringValue = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value !== '') {
+            writer.uint32(10).string(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseStringValue);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseStringValue);
+        message.value =
+            object.value !== undefined && object.value !== null ? String(object.value) : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseStringValue);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseBytesValue = {};
+exports.BytesValue = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.value.length !== 0) {
+            writer.uint32(10).bytes(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseBytesValue);
+        message.value = Buffer.alloc(0);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.value = reader.bytes();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseBytesValue);
+        message.value =
+            object.value !== undefined && object.value !== null
+                ? Buffer.from(bytesFromBase64(object.value))
+                : Buffer.alloc(0);
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.value !== undefined &&
+            (obj.value = base64FromBytes(message.value !== undefined ? message.value : Buffer.alloc(0)));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseBytesValue);
+        message.value = (_a = object.value) !== null && _a !== void 0 ? _a : Buffer.alloc(0);
+        return message;
+    },
+};
+var globalThis = (() => {
+    if (typeof globalThis !== 'undefined')
+        return globalThis;
+    if (typeof self !== 'undefined')
+        return self;
+    if (typeof window !== 'undefined')
+        return window;
+    if (typeof global !== 'undefined')
+        return global;
+    throw 'Unable to locate global object';
+})();
+const atob = globalThis.atob || ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'));
+function bytesFromBase64(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+        arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+}
+const btoa = globalThis.btoa || ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'));
+function base64FromBytes(arr) {
+    const bin = [];
+    for (const byte of arr) {
+        bin.push(String.fromCharCode(byte));
+    }
+    return btoa(bin.join(''));
+}
 function longToNumber(long) {
     if (long.gt(Number.MAX_SAFE_INTEGER)) {
         throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
@@ -26307,6 +27682,3249 @@ function fromJsonTimestamp(o) {
     else {
         return fromTimestamp(timestamp_1.Timestamp.fromJSON(o));
     }
+}
+if (minimal_1.default.util.Long !== long_1.default) {
+    minimal_1.default.util.Long = long_1.default;
+    minimal_1.default.configure();
+}
+
+
+/***/ }),
+
+/***/ 76838:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Payload_Entry = exports.Payload = exports.protobufPackage = void 0;
+/* eslint-disable */
+const long_1 = __importDefault(__nccwpck_require__(66390));
+const minimal_1 = __importDefault(__nccwpck_require__(37823));
+exports.protobufPackage = 'yandex.cloud.lockbox.v1';
+const basePayload = { versionId: '' };
+exports.Payload = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.versionId !== '') {
+            writer.uint32(10).string(message.versionId);
+        }
+        for (const v of message.entries) {
+            exports.Payload_Entry.encode(v, writer.uint32(18).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, basePayload);
+        message.entries = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.versionId = reader.string();
+                    break;
+                case 2:
+                    message.entries.push(exports.Payload_Entry.decode(reader, reader.uint32()));
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, basePayload);
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        message.entries = ((_a = object.entries) !== null && _a !== void 0 ? _a : []).map((e) => exports.Payload_Entry.fromJSON(e));
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        if (message.entries) {
+            obj.entries = message.entries.map((e) => (e ? exports.Payload_Entry.toJSON(e) : undefined));
+        }
+        else {
+            obj.entries = [];
+        }
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, basePayload);
+        message.versionId = (_a = object.versionId) !== null && _a !== void 0 ? _a : '';
+        message.entries = ((_b = object.entries) === null || _b === void 0 ? void 0 : _b.map((e) => exports.Payload_Entry.fromPartial(e))) || [];
+        return message;
+    },
+};
+const basePayload_Entry = { key: '' };
+exports.Payload_Entry = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.textValue !== undefined) {
+            writer.uint32(18).string(message.textValue);
+        }
+        if (message.binaryValue !== undefined) {
+            writer.uint32(26).bytes(message.binaryValue);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, basePayload_Entry);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.textValue = reader.string();
+                    break;
+                case 3:
+                    message.binaryValue = reader.bytes();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, basePayload_Entry);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.textValue =
+            object.textValue !== undefined && object.textValue !== null
+                ? String(object.textValue)
+                : undefined;
+        message.binaryValue =
+            object.binaryValue !== undefined && object.binaryValue !== null
+                ? Buffer.from(bytesFromBase64(object.binaryValue))
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.textValue !== undefined && (obj.textValue = message.textValue);
+        message.binaryValue !== undefined &&
+            (obj.binaryValue =
+                message.binaryValue !== undefined
+                    ? base64FromBytes(message.binaryValue)
+                    : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, basePayload_Entry);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.textValue = (_b = object.textValue) !== null && _b !== void 0 ? _b : undefined;
+        message.binaryValue = (_c = object.binaryValue) !== null && _c !== void 0 ? _c : undefined;
+        return message;
+    },
+};
+var globalThis = (() => {
+    if (typeof globalThis !== 'undefined')
+        return globalThis;
+    if (typeof self !== 'undefined')
+        return self;
+    if (typeof window !== 'undefined')
+        return window;
+    if (typeof global !== 'undefined')
+        return global;
+    throw 'Unable to locate global object';
+})();
+const atob = globalThis.atob || ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'));
+function bytesFromBase64(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+        arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+}
+const btoa = globalThis.btoa || ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'));
+function base64FromBytes(arr) {
+    const bin = [];
+    for (const byte of arr) {
+        bin.push(String.fromCharCode(byte));
+    }
+    return btoa(bin.join(''));
+}
+if (minimal_1.default.util.Long !== long_1.default) {
+    minimal_1.default.util.Long = long_1.default;
+    minimal_1.default.configure();
+}
+
+
+/***/ }),
+
+/***/ 69830:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PayloadServiceClient = exports.PayloadServiceService = exports.GetExResponse_EntriesEntry = exports.GetExResponse = exports.FolderAndName = exports.GetExRequest = exports.GetPayloadRequest = exports.protobufPackage = void 0;
+/* eslint-disable */
+const long_1 = __importDefault(__nccwpck_require__(66390));
+const grpc_js_1 = __nccwpck_require__(83033);
+const minimal_1 = __importDefault(__nccwpck_require__(37823));
+const payload_1 = __nccwpck_require__(76838);
+exports.protobufPackage = 'yandex.cloud.lockbox.v1';
+const baseGetPayloadRequest = { secretId: '', versionId: '' };
+exports.GetPayloadRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseGetPayloadRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseGetPayloadRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseGetPayloadRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseGetExRequest = { versionId: '' };
+exports.GetExRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== undefined) {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.folderAndName !== undefined) {
+            exports.FolderAndName.encode(message.folderAndName, writer.uint32(18).fork()).ldelim();
+        }
+        if (message.versionId !== '') {
+            writer.uint32(170).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseGetExRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.folderAndName = exports.FolderAndName.decode(reader, reader.uint32());
+                    break;
+                case 21:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseGetExRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : undefined;
+        message.folderAndName =
+            object.folderAndName !== undefined && object.folderAndName !== null
+                ? exports.FolderAndName.fromJSON(object.folderAndName)
+                : undefined;
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.folderAndName !== undefined &&
+            (obj.folderAndName = message.folderAndName
+                ? exports.FolderAndName.toJSON(message.folderAndName)
+                : undefined);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseGetExRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : undefined;
+        message.folderAndName =
+            object.folderAndName !== undefined && object.folderAndName !== null
+                ? exports.FolderAndName.fromPartial(object.folderAndName)
+                : undefined;
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseFolderAndName = { folderId: '', secretName: '' };
+exports.FolderAndName = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.folderId !== '') {
+            writer.uint32(10).string(message.folderId);
+        }
+        if (message.secretName !== '') {
+            writer.uint32(18).string(message.secretName);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseFolderAndName);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.folderId = reader.string();
+                    break;
+                case 2:
+                    message.secretName = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseFolderAndName);
+        message.folderId =
+            object.folderId !== undefined && object.folderId !== null
+                ? String(object.folderId)
+                : '';
+        message.secretName =
+            object.secretName !== undefined && object.secretName !== null
+                ? String(object.secretName)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.folderId !== undefined && (obj.folderId = message.folderId);
+        message.secretName !== undefined && (obj.secretName = message.secretName);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseFolderAndName);
+        message.folderId = (_a = object.folderId) !== null && _a !== void 0 ? _a : '';
+        message.secretName = (_b = object.secretName) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseGetExResponse = { secretId: '', versionId: '' };
+exports.GetExResponse = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        Object.entries(message.entries).forEach(([key, value]) => {
+            exports.GetExResponse_EntriesEntry.encode({ key: key, value }, writer.uint32(26).fork()).ldelim();
+        });
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseGetExResponse);
+        message.entries = {};
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                case 3:
+                    const entry3 = exports.GetExResponse_EntriesEntry.decode(reader, reader.uint32());
+                    if (entry3.value !== undefined) {
+                        message.entries[entry3.key] = entry3.value;
+                    }
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseGetExResponse);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        message.entries = Object.entries((_a = object.entries) !== null && _a !== void 0 ? _a : {}).reduce((acc, [key, value]) => {
+            acc[key] = Buffer.from(bytesFromBase64(value));
+            return acc;
+        }, {});
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        obj.entries = {};
+        if (message.entries) {
+            Object.entries(message.entries).forEach(([k, v]) => {
+                obj.entries[k] = base64FromBytes(v);
+            });
+        }
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, baseGetExResponse);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        message.entries = Object.entries((_c = object.entries) !== null && _c !== void 0 ? _c : {}).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {});
+        return message;
+    },
+};
+const baseGetExResponse_EntriesEntry = { key: '' };
+exports.GetExResponse_EntriesEntry = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.value.length !== 0) {
+            writer.uint32(18).bytes(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseGetExResponse_EntriesEntry);
+        message.value = Buffer.alloc(0);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.value = reader.bytes();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseGetExResponse_EntriesEntry);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.value =
+            object.value !== undefined && object.value !== null
+                ? Buffer.from(bytesFromBase64(object.value))
+                : Buffer.alloc(0);
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.value !== undefined &&
+            (obj.value = base64FromBytes(message.value !== undefined ? message.value : Buffer.alloc(0)));
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseGetExResponse_EntriesEntry);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.value = (_b = object.value) !== null && _b !== void 0 ? _b : Buffer.alloc(0);
+        return message;
+    },
+};
+/** Set of methods to access payload of secrets. */
+exports.PayloadServiceService = {
+    /**
+     * Returns the payload of the specified secret.
+     *
+     * To get the list of all available secrets, make a [SecretService.List] request.
+     */
+    get: {
+        path: '/yandex.cloud.lockbox.v1.PayloadService/Get',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.GetPayloadRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.GetPayloadRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(payload_1.Payload.encode(value).finish()),
+        responseDeserialize: (value) => payload_1.Payload.decode(value),
+    },
+    getEx: {
+        path: '/yandex.cloud.lockbox.v1.PayloadService/GetEx',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.GetExRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.GetExRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.GetExResponse.encode(value).finish()),
+        responseDeserialize: (value) => exports.GetExResponse.decode(value),
+    },
+};
+exports.PayloadServiceClient = (0, grpc_js_1.makeGenericClientConstructor)(exports.PayloadServiceService, 'yandex.cloud.lockbox.v1.PayloadService');
+var globalThis = (() => {
+    if (typeof globalThis !== 'undefined')
+        return globalThis;
+    if (typeof self !== 'undefined')
+        return self;
+    if (typeof window !== 'undefined')
+        return window;
+    if (typeof global !== 'undefined')
+        return global;
+    throw 'Unable to locate global object';
+})();
+const atob = globalThis.atob || ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'));
+function bytesFromBase64(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+        arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+}
+const btoa = globalThis.btoa || ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'));
+function base64FromBytes(arr) {
+    const bin = [];
+    for (const byte of arr) {
+        bin.push(String.fromCharCode(byte));
+    }
+    return btoa(bin.join(''));
+}
+if (minimal_1.default.util.Long !== long_1.default) {
+    minimal_1.default.util.Long = long_1.default;
+    minimal_1.default.configure();
+}
+
+
+/***/ }),
+
+/***/ 65250:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PasswordPayloadSpecification = exports.Version = exports.Secret_LabelsEntry = exports.Secret = exports.version_StatusToJSON = exports.version_StatusFromJSON = exports.Version_Status = exports.secret_StatusToJSON = exports.secret_StatusFromJSON = exports.Secret_Status = exports.protobufPackage = void 0;
+/* eslint-disable */
+const long_1 = __importDefault(__nccwpck_require__(66390));
+const minimal_1 = __importDefault(__nccwpck_require__(37823));
+const timestamp_1 = __nccwpck_require__(20959);
+const wrappers_1 = __nccwpck_require__(84327);
+exports.protobufPackage = 'yandex.cloud.lockbox.v1';
+var Secret_Status;
+(function (Secret_Status) {
+    Secret_Status[Secret_Status["STATUS_UNSPECIFIED"] = 0] = "STATUS_UNSPECIFIED";
+    /** CREATING - The secret is being created. */
+    Secret_Status[Secret_Status["CREATING"] = 1] = "CREATING";
+    /**
+     * ACTIVE - The secret is active and the secret payload can be accessed.
+     *
+     * Can be set to INACTIVE using the [SecretService.Deactivate] method.
+     */
+    Secret_Status[Secret_Status["ACTIVE"] = 2] = "ACTIVE";
+    /**
+     * INACTIVE - The secret is inactive and unusable.
+     *
+     * Can be set to ACTIVE using the [SecretService.Deactivate] method.
+     */
+    Secret_Status[Secret_Status["INACTIVE"] = 3] = "INACTIVE";
+    Secret_Status[Secret_Status["UNRECOGNIZED"] = -1] = "UNRECOGNIZED";
+})(Secret_Status = exports.Secret_Status || (exports.Secret_Status = {}));
+function secret_StatusFromJSON(object) {
+    switch (object) {
+        case 0:
+        case 'STATUS_UNSPECIFIED':
+            return Secret_Status.STATUS_UNSPECIFIED;
+        case 1:
+        case 'CREATING':
+            return Secret_Status.CREATING;
+        case 2:
+        case 'ACTIVE':
+            return Secret_Status.ACTIVE;
+        case 3:
+        case 'INACTIVE':
+            return Secret_Status.INACTIVE;
+        case -1:
+        case 'UNRECOGNIZED':
+        default:
+            return Secret_Status.UNRECOGNIZED;
+    }
+}
+exports.secret_StatusFromJSON = secret_StatusFromJSON;
+function secret_StatusToJSON(object) {
+    switch (object) {
+        case Secret_Status.STATUS_UNSPECIFIED:
+            return 'STATUS_UNSPECIFIED';
+        case Secret_Status.CREATING:
+            return 'CREATING';
+        case Secret_Status.ACTIVE:
+            return 'ACTIVE';
+        case Secret_Status.INACTIVE:
+            return 'INACTIVE';
+        default:
+            return 'UNKNOWN';
+    }
+}
+exports.secret_StatusToJSON = secret_StatusToJSON;
+var Version_Status;
+(function (Version_Status) {
+    Version_Status[Version_Status["STATUS_UNSPECIFIED"] = 0] = "STATUS_UNSPECIFIED";
+    /** ACTIVE - The version is active and the secret payload can be accessed. */
+    Version_Status[Version_Status["ACTIVE"] = 1] = "ACTIVE";
+    /**
+     * SCHEDULED_FOR_DESTRUCTION - The version is scheduled for destruction, the time when it will be destroyed
+     * is specified in the [Version.destroy_at] field.
+     */
+    Version_Status[Version_Status["SCHEDULED_FOR_DESTRUCTION"] = 2] = "SCHEDULED_FOR_DESTRUCTION";
+    /** DESTROYED - The version is destroyed and cannot be recovered. */
+    Version_Status[Version_Status["DESTROYED"] = 3] = "DESTROYED";
+    Version_Status[Version_Status["UNRECOGNIZED"] = -1] = "UNRECOGNIZED";
+})(Version_Status = exports.Version_Status || (exports.Version_Status = {}));
+function version_StatusFromJSON(object) {
+    switch (object) {
+        case 0:
+        case 'STATUS_UNSPECIFIED':
+            return Version_Status.STATUS_UNSPECIFIED;
+        case 1:
+        case 'ACTIVE':
+            return Version_Status.ACTIVE;
+        case 2:
+        case 'SCHEDULED_FOR_DESTRUCTION':
+            return Version_Status.SCHEDULED_FOR_DESTRUCTION;
+        case 3:
+        case 'DESTROYED':
+            return Version_Status.DESTROYED;
+        case -1:
+        case 'UNRECOGNIZED':
+        default:
+            return Version_Status.UNRECOGNIZED;
+    }
+}
+exports.version_StatusFromJSON = version_StatusFromJSON;
+function version_StatusToJSON(object) {
+    switch (object) {
+        case Version_Status.STATUS_UNSPECIFIED:
+            return 'STATUS_UNSPECIFIED';
+        case Version_Status.ACTIVE:
+            return 'ACTIVE';
+        case Version_Status.SCHEDULED_FOR_DESTRUCTION:
+            return 'SCHEDULED_FOR_DESTRUCTION';
+        case Version_Status.DESTROYED:
+            return 'DESTROYED';
+        default:
+            return 'UNKNOWN';
+    }
+}
+exports.version_StatusToJSON = version_StatusToJSON;
+const baseSecret = {
+    id: '',
+    folderId: '',
+    name: '',
+    description: '',
+    kmsKeyId: '',
+    status: 0,
+    deletionProtection: false,
+};
+exports.Secret = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.id !== '') {
+            writer.uint32(10).string(message.id);
+        }
+        if (message.folderId !== '') {
+            writer.uint32(18).string(message.folderId);
+        }
+        if (message.createdAt !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(26).fork()).ldelim();
+        }
+        if (message.name !== '') {
+            writer.uint32(34).string(message.name);
+        }
+        if (message.description !== '') {
+            writer.uint32(42).string(message.description);
+        }
+        Object.entries(message.labels).forEach(([key, value]) => {
+            exports.Secret_LabelsEntry.encode({ key: key, value }, writer.uint32(50).fork()).ldelim();
+        });
+        if (message.kmsKeyId !== '') {
+            writer.uint32(58).string(message.kmsKeyId);
+        }
+        if (message.status !== 0) {
+            writer.uint32(64).int32(message.status);
+        }
+        if (message.currentVersion !== undefined) {
+            exports.Version.encode(message.currentVersion, writer.uint32(74).fork()).ldelim();
+        }
+        if (message.deletionProtection === true) {
+            writer.uint32(80).bool(message.deletionProtection);
+        }
+        if (message.passwordPayloadSpecification !== undefined) {
+            exports.PasswordPayloadSpecification.encode(message.passwordPayloadSpecification, writer.uint32(90).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseSecret);
+        message.labels = {};
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.id = reader.string();
+                    break;
+                case 2:
+                    message.folderId = reader.string();
+                    break;
+                case 3:
+                    message.createdAt = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    break;
+                case 4:
+                    message.name = reader.string();
+                    break;
+                case 5:
+                    message.description = reader.string();
+                    break;
+                case 6:
+                    const entry6 = exports.Secret_LabelsEntry.decode(reader, reader.uint32());
+                    if (entry6.value !== undefined) {
+                        message.labels[entry6.key] = entry6.value;
+                    }
+                    break;
+                case 7:
+                    message.kmsKeyId = reader.string();
+                    break;
+                case 8:
+                    message.status = reader.int32();
+                    break;
+                case 9:
+                    message.currentVersion = exports.Version.decode(reader, reader.uint32());
+                    break;
+                case 10:
+                    message.deletionProtection = reader.bool();
+                    break;
+                case 11:
+                    message.passwordPayloadSpecification = exports.PasswordPayloadSpecification.decode(reader, reader.uint32());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseSecret);
+        message.id = object.id !== undefined && object.id !== null ? String(object.id) : '';
+        message.folderId =
+            object.folderId !== undefined && object.folderId !== null
+                ? String(object.folderId)
+                : '';
+        message.createdAt =
+            object.createdAt !== undefined && object.createdAt !== null
+                ? fromJsonTimestamp(object.createdAt)
+                : undefined;
+        message.name = object.name !== undefined && object.name !== null ? String(object.name) : '';
+        message.description =
+            object.description !== undefined && object.description !== null
+                ? String(object.description)
+                : '';
+        message.labels = Object.entries((_a = object.labels) !== null && _a !== void 0 ? _a : {}).reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+        }, {});
+        message.kmsKeyId =
+            object.kmsKeyId !== undefined && object.kmsKeyId !== null
+                ? String(object.kmsKeyId)
+                : '';
+        message.status =
+            object.status !== undefined && object.status !== null
+                ? secret_StatusFromJSON(object.status)
+                : 0;
+        message.currentVersion =
+            object.currentVersion !== undefined && object.currentVersion !== null
+                ? exports.Version.fromJSON(object.currentVersion)
+                : undefined;
+        message.deletionProtection =
+            object.deletionProtection !== undefined && object.deletionProtection !== null
+                ? Boolean(object.deletionProtection)
+                : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? exports.PasswordPayloadSpecification.fromJSON(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.id !== undefined && (obj.id = message.id);
+        message.folderId !== undefined && (obj.folderId = message.folderId);
+        message.createdAt !== undefined && (obj.createdAt = message.createdAt.toISOString());
+        message.name !== undefined && (obj.name = message.name);
+        message.description !== undefined && (obj.description = message.description);
+        obj.labels = {};
+        if (message.labels) {
+            Object.entries(message.labels).forEach(([k, v]) => {
+                obj.labels[k] = v;
+            });
+        }
+        message.kmsKeyId !== undefined && (obj.kmsKeyId = message.kmsKeyId);
+        message.status !== undefined && (obj.status = secret_StatusToJSON(message.status));
+        message.currentVersion !== undefined &&
+            (obj.currentVersion = message.currentVersion
+                ? exports.Version.toJSON(message.currentVersion)
+                : undefined);
+        message.deletionProtection !== undefined &&
+            (obj.deletionProtection = message.deletionProtection);
+        message.passwordPayloadSpecification !== undefined &&
+            (obj.passwordPayloadSpecification = message.passwordPayloadSpecification
+                ? exports.PasswordPayloadSpecification.toJSON(message.passwordPayloadSpecification)
+                : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        const message = Object.assign({}, baseSecret);
+        message.id = (_a = object.id) !== null && _a !== void 0 ? _a : '';
+        message.folderId = (_b = object.folderId) !== null && _b !== void 0 ? _b : '';
+        message.createdAt = (_c = object.createdAt) !== null && _c !== void 0 ? _c : undefined;
+        message.name = (_d = object.name) !== null && _d !== void 0 ? _d : '';
+        message.description = (_e = object.description) !== null && _e !== void 0 ? _e : '';
+        message.labels = Object.entries((_f = object.labels) !== null && _f !== void 0 ? _f : {}).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = String(value);
+            }
+            return acc;
+        }, {});
+        message.kmsKeyId = (_g = object.kmsKeyId) !== null && _g !== void 0 ? _g : '';
+        message.status = (_h = object.status) !== null && _h !== void 0 ? _h : 0;
+        message.currentVersion =
+            object.currentVersion !== undefined && object.currentVersion !== null
+                ? exports.Version.fromPartial(object.currentVersion)
+                : undefined;
+        message.deletionProtection = (_j = object.deletionProtection) !== null && _j !== void 0 ? _j : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? exports.PasswordPayloadSpecification.fromPartial(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+};
+const baseSecret_LabelsEntry = { key: '', value: '' };
+exports.Secret_LabelsEntry = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.value !== '') {
+            writer.uint32(18).string(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseSecret_LabelsEntry);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.value = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseSecret_LabelsEntry);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.value =
+            object.value !== undefined && object.value !== null ? String(object.value) : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseSecret_LabelsEntry);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.value = (_b = object.value) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseVersion = {
+    id: '',
+    secretId: '',
+    description: '',
+    status: 0,
+    payloadEntryKeys: '',
+};
+exports.Version = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.id !== '') {
+            writer.uint32(10).string(message.id);
+        }
+        if (message.secretId !== '') {
+            writer.uint32(18).string(message.secretId);
+        }
+        if (message.createdAt !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.createdAt), writer.uint32(26).fork()).ldelim();
+        }
+        if (message.destroyAt !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.destroyAt), writer.uint32(34).fork()).ldelim();
+        }
+        if (message.description !== '') {
+            writer.uint32(42).string(message.description);
+        }
+        if (message.status !== 0) {
+            writer.uint32(48).int32(message.status);
+        }
+        for (const v of message.payloadEntryKeys) {
+            writer.uint32(58).string(v);
+        }
+        if (message.passwordPayloadSpecification !== undefined) {
+            exports.PasswordPayloadSpecification.encode(message.passwordPayloadSpecification, writer.uint32(66).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseVersion);
+        message.payloadEntryKeys = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.id = reader.string();
+                    break;
+                case 2:
+                    message.secretId = reader.string();
+                    break;
+                case 3:
+                    message.createdAt = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    break;
+                case 4:
+                    message.destroyAt = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    break;
+                case 5:
+                    message.description = reader.string();
+                    break;
+                case 6:
+                    message.status = reader.int32();
+                    break;
+                case 7:
+                    message.payloadEntryKeys.push(reader.string());
+                    break;
+                case 8:
+                    message.passwordPayloadSpecification = exports.PasswordPayloadSpecification.decode(reader, reader.uint32());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseVersion);
+        message.id = object.id !== undefined && object.id !== null ? String(object.id) : '';
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.createdAt =
+            object.createdAt !== undefined && object.createdAt !== null
+                ? fromJsonTimestamp(object.createdAt)
+                : undefined;
+        message.destroyAt =
+            object.destroyAt !== undefined && object.destroyAt !== null
+                ? fromJsonTimestamp(object.destroyAt)
+                : undefined;
+        message.description =
+            object.description !== undefined && object.description !== null
+                ? String(object.description)
+                : '';
+        message.status =
+            object.status !== undefined && object.status !== null
+                ? version_StatusFromJSON(object.status)
+                : 0;
+        message.payloadEntryKeys = ((_a = object.payloadEntryKeys) !== null && _a !== void 0 ? _a : []).map((e) => String(e));
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? exports.PasswordPayloadSpecification.fromJSON(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.id !== undefined && (obj.id = message.id);
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.createdAt !== undefined && (obj.createdAt = message.createdAt.toISOString());
+        message.destroyAt !== undefined && (obj.destroyAt = message.destroyAt.toISOString());
+        message.description !== undefined && (obj.description = message.description);
+        message.status !== undefined && (obj.status = version_StatusToJSON(message.status));
+        if (message.payloadEntryKeys) {
+            obj.payloadEntryKeys = message.payloadEntryKeys.map((e) => e);
+        }
+        else {
+            obj.payloadEntryKeys = [];
+        }
+        message.passwordPayloadSpecification !== undefined &&
+            (obj.passwordPayloadSpecification = message.passwordPayloadSpecification
+                ? exports.PasswordPayloadSpecification.toJSON(message.passwordPayloadSpecification)
+                : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const message = Object.assign({}, baseVersion);
+        message.id = (_a = object.id) !== null && _a !== void 0 ? _a : '';
+        message.secretId = (_b = object.secretId) !== null && _b !== void 0 ? _b : '';
+        message.createdAt = (_c = object.createdAt) !== null && _c !== void 0 ? _c : undefined;
+        message.destroyAt = (_d = object.destroyAt) !== null && _d !== void 0 ? _d : undefined;
+        message.description = (_e = object.description) !== null && _e !== void 0 ? _e : '';
+        message.status = (_f = object.status) !== null && _f !== void 0 ? _f : 0;
+        message.payloadEntryKeys = ((_g = object.payloadEntryKeys) === null || _g === void 0 ? void 0 : _g.map((e) => e)) || [];
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? exports.PasswordPayloadSpecification.fromPartial(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+};
+const basePasswordPayloadSpecification = {
+    passwordKey: '',
+    length: 0,
+    includedPunctuation: '',
+    excludedPunctuation: '',
+};
+exports.PasswordPayloadSpecification = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.passwordKey !== '') {
+            writer.uint32(10).string(message.passwordKey);
+        }
+        if (message.length !== 0) {
+            writer.uint32(16).int64(message.length);
+        }
+        if (message.includeUppercase !== undefined) {
+            wrappers_1.BoolValue.encode({ value: message.includeUppercase }, writer.uint32(26).fork()).ldelim();
+        }
+        if (message.includeLowercase !== undefined) {
+            wrappers_1.BoolValue.encode({ value: message.includeLowercase }, writer.uint32(34).fork()).ldelim();
+        }
+        if (message.includeDigits !== undefined) {
+            wrappers_1.BoolValue.encode({ value: message.includeDigits }, writer.uint32(42).fork()).ldelim();
+        }
+        if (message.includePunctuation !== undefined) {
+            wrappers_1.BoolValue.encode({ value: message.includePunctuation }, writer.uint32(50).fork()).ldelim();
+        }
+        if (message.includedPunctuation !== '') {
+            writer.uint32(58).string(message.includedPunctuation);
+        }
+        if (message.excludedPunctuation !== '') {
+            writer.uint32(66).string(message.excludedPunctuation);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, basePasswordPayloadSpecification);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.passwordKey = reader.string();
+                    break;
+                case 2:
+                    message.length = longToNumber(reader.int64());
+                    break;
+                case 3:
+                    message.includeUppercase = wrappers_1.BoolValue.decode(reader, reader.uint32()).value;
+                    break;
+                case 4:
+                    message.includeLowercase = wrappers_1.BoolValue.decode(reader, reader.uint32()).value;
+                    break;
+                case 5:
+                    message.includeDigits = wrappers_1.BoolValue.decode(reader, reader.uint32()).value;
+                    break;
+                case 6:
+                    message.includePunctuation = wrappers_1.BoolValue.decode(reader, reader.uint32()).value;
+                    break;
+                case 7:
+                    message.includedPunctuation = reader.string();
+                    break;
+                case 8:
+                    message.excludedPunctuation = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, basePasswordPayloadSpecification);
+        message.passwordKey =
+            object.passwordKey !== undefined && object.passwordKey !== null
+                ? String(object.passwordKey)
+                : '';
+        message.length =
+            object.length !== undefined && object.length !== null ? Number(object.length) : 0;
+        message.includeUppercase =
+            object.includeUppercase !== undefined && object.includeUppercase !== null
+                ? Boolean(object.includeUppercase)
+                : undefined;
+        message.includeLowercase =
+            object.includeLowercase !== undefined && object.includeLowercase !== null
+                ? Boolean(object.includeLowercase)
+                : undefined;
+        message.includeDigits =
+            object.includeDigits !== undefined && object.includeDigits !== null
+                ? Boolean(object.includeDigits)
+                : undefined;
+        message.includePunctuation =
+            object.includePunctuation !== undefined && object.includePunctuation !== null
+                ? Boolean(object.includePunctuation)
+                : undefined;
+        message.includedPunctuation =
+            object.includedPunctuation !== undefined && object.includedPunctuation !== null
+                ? String(object.includedPunctuation)
+                : '';
+        message.excludedPunctuation =
+            object.excludedPunctuation !== undefined && object.excludedPunctuation !== null
+                ? String(object.excludedPunctuation)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.passwordKey !== undefined && (obj.passwordKey = message.passwordKey);
+        message.length !== undefined && (obj.length = Math.round(message.length));
+        message.includeUppercase !== undefined && (obj.includeUppercase = message.includeUppercase);
+        message.includeLowercase !== undefined && (obj.includeLowercase = message.includeLowercase);
+        message.includeDigits !== undefined && (obj.includeDigits = message.includeDigits);
+        message.includePunctuation !== undefined &&
+            (obj.includePunctuation = message.includePunctuation);
+        message.includedPunctuation !== undefined &&
+            (obj.includedPunctuation = message.includedPunctuation);
+        message.excludedPunctuation !== undefined &&
+            (obj.excludedPunctuation = message.excludedPunctuation);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        const message = Object.assign({}, basePasswordPayloadSpecification);
+        message.passwordKey = (_a = object.passwordKey) !== null && _a !== void 0 ? _a : '';
+        message.length = (_b = object.length) !== null && _b !== void 0 ? _b : 0;
+        message.includeUppercase = (_c = object.includeUppercase) !== null && _c !== void 0 ? _c : undefined;
+        message.includeLowercase = (_d = object.includeLowercase) !== null && _d !== void 0 ? _d : undefined;
+        message.includeDigits = (_e = object.includeDigits) !== null && _e !== void 0 ? _e : undefined;
+        message.includePunctuation = (_f = object.includePunctuation) !== null && _f !== void 0 ? _f : undefined;
+        message.includedPunctuation = (_g = object.includedPunctuation) !== null && _g !== void 0 ? _g : '';
+        message.excludedPunctuation = (_h = object.excludedPunctuation) !== null && _h !== void 0 ? _h : '';
+        return message;
+    },
+};
+var globalThis = (() => {
+    if (typeof globalThis !== 'undefined')
+        return globalThis;
+    if (typeof self !== 'undefined')
+        return self;
+    if (typeof window !== 'undefined')
+        return window;
+    if (typeof global !== 'undefined')
+        return global;
+    throw 'Unable to locate global object';
+})();
+function toTimestamp(date) {
+    const seconds = date.getTime() / 1000;
+    const nanos = (date.getTime() % 1000) * 1000000;
+    return { seconds, nanos };
+}
+function fromTimestamp(t) {
+    let millis = t.seconds * 1000;
+    millis += t.nanos / 1000000;
+    return new Date(millis);
+}
+function fromJsonTimestamp(o) {
+    if (o instanceof Date) {
+        return o;
+    }
+    else if (typeof o === 'string') {
+        return new Date(o);
+    }
+    else {
+        return fromTimestamp(timestamp_1.Timestamp.fromJSON(o));
+    }
+}
+function longToNumber(long) {
+    if (long.gt(Number.MAX_SAFE_INTEGER)) {
+        throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+    }
+    return long.toNumber();
+}
+if (minimal_1.default.util.Long !== long_1.default) {
+    minimal_1.default.util.Long = long_1.default;
+    minimal_1.default.configure();
+}
+
+
+/***/ }),
+
+/***/ 15266:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SecretServiceClient = exports.SecretServiceService = exports.ListSecretOperationsResponse = exports.ListSecretOperationsRequest = exports.CancelVersionDestructionMetadata = exports.CancelVersionDestructionRequest = exports.ScheduleVersionDestructionMetadata = exports.ScheduleVersionDestructionRequest = exports.ListVersionsResponse = exports.ListVersionsRequest = exports.AddVersionMetadata = exports.AddVersionRequest = exports.DeactivateSecretMetadata = exports.DeactivateSecretRequest = exports.ActivateSecretMetadata = exports.ActivateSecretRequest = exports.DeleteSecretMetadata = exports.DeleteSecretRequest = exports.UpdateSecretMetadata = exports.UpdateSecretRequest_LabelsEntry = exports.UpdateSecretRequest = exports.CreateSecretMetadata = exports.CreateSecretRequest_LabelsEntry = exports.CreateSecretRequest = exports.ListSecretsResponse = exports.ListSecretsRequest = exports.GetSecretRequest = exports.PayloadEntryChange = exports.protobufPackage = void 0;
+/* eslint-disable */
+const long_1 = __importDefault(__nccwpck_require__(66390));
+const grpc_js_1 = __nccwpck_require__(83033);
+const minimal_1 = __importDefault(__nccwpck_require__(37823));
+const field_mask_1 = __nccwpck_require__(24518);
+const duration_1 = __nccwpck_require__(65495);
+const timestamp_1 = __nccwpck_require__(20959);
+const secret_1 = __nccwpck_require__(65250);
+const operation_1 = __nccwpck_require__(52908);
+const access_1 = __nccwpck_require__(13518);
+const wrappers_1 = __nccwpck_require__(84327);
+exports.protobufPackage = 'yandex.cloud.lockbox.v1';
+const basePayloadEntryChange = { key: '' };
+exports.PayloadEntryChange = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.textValue !== undefined) {
+            writer.uint32(18).string(message.textValue);
+        }
+        if (message.binaryValue !== undefined) {
+            writer.uint32(26).bytes(message.binaryValue);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, basePayloadEntryChange);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.textValue = reader.string();
+                    break;
+                case 3:
+                    message.binaryValue = reader.bytes();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, basePayloadEntryChange);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.textValue =
+            object.textValue !== undefined && object.textValue !== null
+                ? String(object.textValue)
+                : undefined;
+        message.binaryValue =
+            object.binaryValue !== undefined && object.binaryValue !== null
+                ? Buffer.from(bytesFromBase64(object.binaryValue))
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.textValue !== undefined && (obj.textValue = message.textValue);
+        message.binaryValue !== undefined &&
+            (obj.binaryValue =
+                message.binaryValue !== undefined
+                    ? base64FromBytes(message.binaryValue)
+                    : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, basePayloadEntryChange);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.textValue = (_b = object.textValue) !== null && _b !== void 0 ? _b : undefined;
+        message.binaryValue = (_c = object.binaryValue) !== null && _c !== void 0 ? _c : undefined;
+        return message;
+    },
+};
+const baseGetSecretRequest = { secretId: '' };
+exports.GetSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseGetSecretRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseGetSecretRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseGetSecretRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseListSecretsRequest = { folderId: '', pageSize: 0, pageToken: '' };
+exports.ListSecretsRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.folderId !== '') {
+            writer.uint32(10).string(message.folderId);
+        }
+        if (message.pageSize !== 0) {
+            writer.uint32(16).int64(message.pageSize);
+        }
+        if (message.pageToken !== '') {
+            writer.uint32(26).string(message.pageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListSecretsRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.folderId = reader.string();
+                    break;
+                case 2:
+                    message.pageSize = longToNumber(reader.int64());
+                    break;
+                case 3:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseListSecretsRequest);
+        message.folderId =
+            object.folderId !== undefined && object.folderId !== null
+                ? String(object.folderId)
+                : '';
+        message.pageSize =
+            object.pageSize !== undefined && object.pageSize !== null ? Number(object.pageSize) : 0;
+        message.pageToken =
+            object.pageToken !== undefined && object.pageToken !== null
+                ? String(object.pageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.folderId !== undefined && (obj.folderId = message.folderId);
+        message.pageSize !== undefined && (obj.pageSize = Math.round(message.pageSize));
+        message.pageToken !== undefined && (obj.pageToken = message.pageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, baseListSecretsRequest);
+        message.folderId = (_a = object.folderId) !== null && _a !== void 0 ? _a : '';
+        message.pageSize = (_b = object.pageSize) !== null && _b !== void 0 ? _b : 0;
+        message.pageToken = (_c = object.pageToken) !== null && _c !== void 0 ? _c : '';
+        return message;
+    },
+};
+const baseListSecretsResponse = { nextPageToken: '' };
+exports.ListSecretsResponse = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        for (const v of message.secrets) {
+            secret_1.Secret.encode(v, writer.uint32(10).fork()).ldelim();
+        }
+        if (message.nextPageToken !== '') {
+            writer.uint32(18).string(message.nextPageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListSecretsResponse);
+        message.secrets = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secrets.push(secret_1.Secret.decode(reader, reader.uint32()));
+                    break;
+                case 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseListSecretsResponse);
+        message.secrets = ((_a = object.secrets) !== null && _a !== void 0 ? _a : []).map((e) => secret_1.Secret.fromJSON(e));
+        message.nextPageToken =
+            object.nextPageToken !== undefined && object.nextPageToken !== null
+                ? String(object.nextPageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.secrets) {
+            obj.secrets = message.secrets.map((e) => (e ? secret_1.Secret.toJSON(e) : undefined));
+        }
+        else {
+            obj.secrets = [];
+        }
+        message.nextPageToken !== undefined && (obj.nextPageToken = message.nextPageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseListSecretsResponse);
+        message.secrets = ((_a = object.secrets) === null || _a === void 0 ? void 0 : _a.map((e) => secret_1.Secret.fromPartial(e))) || [];
+        message.nextPageToken = (_b = object.nextPageToken) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseCreateSecretRequest = {
+    folderId: '',
+    name: '',
+    description: '',
+    kmsKeyId: '',
+    versionDescription: '',
+    deletionProtection: false,
+};
+exports.CreateSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.folderId !== '') {
+            writer.uint32(10).string(message.folderId);
+        }
+        if (message.name !== '') {
+            writer.uint32(18).string(message.name);
+        }
+        if (message.description !== '') {
+            writer.uint32(26).string(message.description);
+        }
+        Object.entries(message.labels).forEach(([key, value]) => {
+            exports.CreateSecretRequest_LabelsEntry.encode({ key: key, value }, writer.uint32(34).fork()).ldelim();
+        });
+        if (message.kmsKeyId !== '') {
+            writer.uint32(42).string(message.kmsKeyId);
+        }
+        if (message.versionDescription !== '') {
+            writer.uint32(50).string(message.versionDescription);
+        }
+        for (const v of message.versionPayloadEntries) {
+            exports.PayloadEntryChange.encode(v, writer.uint32(58).fork()).ldelim();
+        }
+        if (message.deletionProtection === true) {
+            writer.uint32(64).bool(message.deletionProtection);
+        }
+        if (message.passwordPayloadSpecification !== undefined) {
+            secret_1.PasswordPayloadSpecification.encode(message.passwordPayloadSpecification, writer.uint32(74).fork()).ldelim();
+        }
+        if (message.createVersion !== undefined) {
+            wrappers_1.BoolValue.encode({ value: message.createVersion }, writer.uint32(82).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseCreateSecretRequest);
+        message.labels = {};
+        message.versionPayloadEntries = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.folderId = reader.string();
+                    break;
+                case 2:
+                    message.name = reader.string();
+                    break;
+                case 3:
+                    message.description = reader.string();
+                    break;
+                case 4:
+                    const entry4 = exports.CreateSecretRequest_LabelsEntry.decode(reader, reader.uint32());
+                    if (entry4.value !== undefined) {
+                        message.labels[entry4.key] = entry4.value;
+                    }
+                    break;
+                case 5:
+                    message.kmsKeyId = reader.string();
+                    break;
+                case 6:
+                    message.versionDescription = reader.string();
+                    break;
+                case 7:
+                    message.versionPayloadEntries.push(exports.PayloadEntryChange.decode(reader, reader.uint32()));
+                    break;
+                case 8:
+                    message.deletionProtection = reader.bool();
+                    break;
+                case 9:
+                    message.passwordPayloadSpecification = secret_1.PasswordPayloadSpecification.decode(reader, reader.uint32());
+                    break;
+                case 10:
+                    message.createVersion = wrappers_1.BoolValue.decode(reader, reader.uint32()).value;
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseCreateSecretRequest);
+        message.folderId =
+            object.folderId !== undefined && object.folderId !== null
+                ? String(object.folderId)
+                : '';
+        message.name = object.name !== undefined && object.name !== null ? String(object.name) : '';
+        message.description =
+            object.description !== undefined && object.description !== null
+                ? String(object.description)
+                : '';
+        message.labels = Object.entries((_a = object.labels) !== null && _a !== void 0 ? _a : {}).reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+        }, {});
+        message.kmsKeyId =
+            object.kmsKeyId !== undefined && object.kmsKeyId !== null
+                ? String(object.kmsKeyId)
+                : '';
+        message.versionDescription =
+            object.versionDescription !== undefined && object.versionDescription !== null
+                ? String(object.versionDescription)
+                : '';
+        message.versionPayloadEntries = ((_b = object.versionPayloadEntries) !== null && _b !== void 0 ? _b : []).map((e) => exports.PayloadEntryChange.fromJSON(e));
+        message.deletionProtection =
+            object.deletionProtection !== undefined && object.deletionProtection !== null
+                ? Boolean(object.deletionProtection)
+                : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? secret_1.PasswordPayloadSpecification.fromJSON(object.passwordPayloadSpecification)
+                : undefined;
+        message.createVersion =
+            object.createVersion !== undefined && object.createVersion !== null
+                ? Boolean(object.createVersion)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.folderId !== undefined && (obj.folderId = message.folderId);
+        message.name !== undefined && (obj.name = message.name);
+        message.description !== undefined && (obj.description = message.description);
+        obj.labels = {};
+        if (message.labels) {
+            Object.entries(message.labels).forEach(([k, v]) => {
+                obj.labels[k] = v;
+            });
+        }
+        message.kmsKeyId !== undefined && (obj.kmsKeyId = message.kmsKeyId);
+        message.versionDescription !== undefined &&
+            (obj.versionDescription = message.versionDescription);
+        if (message.versionPayloadEntries) {
+            obj.versionPayloadEntries = message.versionPayloadEntries.map((e) => e ? exports.PayloadEntryChange.toJSON(e) : undefined);
+        }
+        else {
+            obj.versionPayloadEntries = [];
+        }
+        message.deletionProtection !== undefined &&
+            (obj.deletionProtection = message.deletionProtection);
+        message.passwordPayloadSpecification !== undefined &&
+            (obj.passwordPayloadSpecification = message.passwordPayloadSpecification
+                ? secret_1.PasswordPayloadSpecification.toJSON(message.passwordPayloadSpecification)
+                : undefined);
+        message.createVersion !== undefined && (obj.createVersion = message.createVersion);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        const message = Object.assign({}, baseCreateSecretRequest);
+        message.folderId = (_a = object.folderId) !== null && _a !== void 0 ? _a : '';
+        message.name = (_b = object.name) !== null && _b !== void 0 ? _b : '';
+        message.description = (_c = object.description) !== null && _c !== void 0 ? _c : '';
+        message.labels = Object.entries((_d = object.labels) !== null && _d !== void 0 ? _d : {}).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = String(value);
+            }
+            return acc;
+        }, {});
+        message.kmsKeyId = (_e = object.kmsKeyId) !== null && _e !== void 0 ? _e : '';
+        message.versionDescription = (_f = object.versionDescription) !== null && _f !== void 0 ? _f : '';
+        message.versionPayloadEntries =
+            ((_g = object.versionPayloadEntries) === null || _g === void 0 ? void 0 : _g.map((e) => exports.PayloadEntryChange.fromPartial(e))) || [];
+        message.deletionProtection = (_h = object.deletionProtection) !== null && _h !== void 0 ? _h : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? secret_1.PasswordPayloadSpecification.fromPartial(object.passwordPayloadSpecification)
+                : undefined;
+        message.createVersion = (_j = object.createVersion) !== null && _j !== void 0 ? _j : undefined;
+        return message;
+    },
+};
+const baseCreateSecretRequest_LabelsEntry = { key: '', value: '' };
+exports.CreateSecretRequest_LabelsEntry = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.value !== '') {
+            writer.uint32(18).string(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseCreateSecretRequest_LabelsEntry);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.value = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseCreateSecretRequest_LabelsEntry);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.value =
+            object.value !== undefined && object.value !== null ? String(object.value) : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseCreateSecretRequest_LabelsEntry);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.value = (_b = object.value) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseCreateSecretMetadata = { secretId: '', versionId: '' };
+exports.CreateSecretMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseCreateSecretMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseCreateSecretMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseCreateSecretMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseUpdateSecretRequest = {
+    secretId: '',
+    name: '',
+    description: '',
+    deletionProtection: false,
+};
+exports.UpdateSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.updateMask !== undefined) {
+            field_mask_1.FieldMask.encode(message.updateMask, writer.uint32(18).fork()).ldelim();
+        }
+        if (message.name !== '') {
+            writer.uint32(26).string(message.name);
+        }
+        if (message.description !== '') {
+            writer.uint32(34).string(message.description);
+        }
+        Object.entries(message.labels).forEach(([key, value]) => {
+            exports.UpdateSecretRequest_LabelsEntry.encode({ key: key, value }, writer.uint32(42).fork()).ldelim();
+        });
+        if (message.deletionProtection === true) {
+            writer.uint32(48).bool(message.deletionProtection);
+        }
+        if (message.passwordPayloadSpecification !== undefined) {
+            secret_1.PasswordPayloadSpecification.encode(message.passwordPayloadSpecification, writer.uint32(58).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseUpdateSecretRequest);
+        message.labels = {};
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.updateMask = field_mask_1.FieldMask.decode(reader, reader.uint32());
+                    break;
+                case 3:
+                    message.name = reader.string();
+                    break;
+                case 4:
+                    message.description = reader.string();
+                    break;
+                case 5:
+                    const entry5 = exports.UpdateSecretRequest_LabelsEntry.decode(reader, reader.uint32());
+                    if (entry5.value !== undefined) {
+                        message.labels[entry5.key] = entry5.value;
+                    }
+                    break;
+                case 6:
+                    message.deletionProtection = reader.bool();
+                    break;
+                case 7:
+                    message.passwordPayloadSpecification = secret_1.PasswordPayloadSpecification.decode(reader, reader.uint32());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseUpdateSecretRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.updateMask =
+            object.updateMask !== undefined && object.updateMask !== null
+                ? field_mask_1.FieldMask.fromJSON(object.updateMask)
+                : undefined;
+        message.name = object.name !== undefined && object.name !== null ? String(object.name) : '';
+        message.description =
+            object.description !== undefined && object.description !== null
+                ? String(object.description)
+                : '';
+        message.labels = Object.entries((_a = object.labels) !== null && _a !== void 0 ? _a : {}).reduce((acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+        }, {});
+        message.deletionProtection =
+            object.deletionProtection !== undefined && object.deletionProtection !== null
+                ? Boolean(object.deletionProtection)
+                : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? secret_1.PasswordPayloadSpecification.fromJSON(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.updateMask !== undefined &&
+            (obj.updateMask = message.updateMask
+                ? field_mask_1.FieldMask.toJSON(message.updateMask)
+                : undefined);
+        message.name !== undefined && (obj.name = message.name);
+        message.description !== undefined && (obj.description = message.description);
+        obj.labels = {};
+        if (message.labels) {
+            Object.entries(message.labels).forEach(([k, v]) => {
+                obj.labels[k] = v;
+            });
+        }
+        message.deletionProtection !== undefined &&
+            (obj.deletionProtection = message.deletionProtection);
+        message.passwordPayloadSpecification !== undefined &&
+            (obj.passwordPayloadSpecification = message.passwordPayloadSpecification
+                ? secret_1.PasswordPayloadSpecification.toJSON(message.passwordPayloadSpecification)
+                : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d, _e;
+        const message = Object.assign({}, baseUpdateSecretRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.updateMask =
+            object.updateMask !== undefined && object.updateMask !== null
+                ? field_mask_1.FieldMask.fromPartial(object.updateMask)
+                : undefined;
+        message.name = (_b = object.name) !== null && _b !== void 0 ? _b : '';
+        message.description = (_c = object.description) !== null && _c !== void 0 ? _c : '';
+        message.labels = Object.entries((_d = object.labels) !== null && _d !== void 0 ? _d : {}).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = String(value);
+            }
+            return acc;
+        }, {});
+        message.deletionProtection = (_e = object.deletionProtection) !== null && _e !== void 0 ? _e : false;
+        message.passwordPayloadSpecification =
+            object.passwordPayloadSpecification !== undefined &&
+                object.passwordPayloadSpecification !== null
+                ? secret_1.PasswordPayloadSpecification.fromPartial(object.passwordPayloadSpecification)
+                : undefined;
+        return message;
+    },
+};
+const baseUpdateSecretRequest_LabelsEntry = { key: '', value: '' };
+exports.UpdateSecretRequest_LabelsEntry = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.key !== '') {
+            writer.uint32(10).string(message.key);
+        }
+        if (message.value !== '') {
+            writer.uint32(18).string(message.value);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseUpdateSecretRequest_LabelsEntry);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.key = reader.string();
+                    break;
+                case 2:
+                    message.value = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseUpdateSecretRequest_LabelsEntry);
+        message.key = object.key !== undefined && object.key !== null ? String(object.key) : '';
+        message.value =
+            object.value !== undefined && object.value !== null ? String(object.value) : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.key !== undefined && (obj.key = message.key);
+        message.value !== undefined && (obj.value = message.value);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseUpdateSecretRequest_LabelsEntry);
+        message.key = (_a = object.key) !== null && _a !== void 0 ? _a : '';
+        message.value = (_b = object.value) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseUpdateSecretMetadata = { secretId: '' };
+exports.UpdateSecretMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseUpdateSecretMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseUpdateSecretMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseUpdateSecretMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseDeleteSecretRequest = { secretId: '' };
+exports.DeleteSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseDeleteSecretRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseDeleteSecretRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseDeleteSecretRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseDeleteSecretMetadata = { secretId: '' };
+exports.DeleteSecretMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseDeleteSecretMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseDeleteSecretMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseDeleteSecretMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseActivateSecretRequest = { secretId: '' };
+exports.ActivateSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseActivateSecretRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseActivateSecretRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseActivateSecretRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseActivateSecretMetadata = { secretId: '' };
+exports.ActivateSecretMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseActivateSecretMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseActivateSecretMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseActivateSecretMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseDeactivateSecretRequest = { secretId: '' };
+exports.DeactivateSecretRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseDeactivateSecretRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseDeactivateSecretRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseDeactivateSecretRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseDeactivateSecretMetadata = { secretId: '' };
+exports.DeactivateSecretMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseDeactivateSecretMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseDeactivateSecretMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a;
+        const message = Object.assign({}, baseDeactivateSecretMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        return message;
+    },
+};
+const baseAddVersionRequest = { secretId: '', description: '', baseVersionId: '' };
+exports.AddVersionRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.description !== '') {
+            writer.uint32(18).string(message.description);
+        }
+        for (const v of message.payloadEntries) {
+            exports.PayloadEntryChange.encode(v, writer.uint32(26).fork()).ldelim();
+        }
+        if (message.baseVersionId !== '') {
+            writer.uint32(34).string(message.baseVersionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseAddVersionRequest);
+        message.payloadEntries = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.description = reader.string();
+                    break;
+                case 3:
+                    message.payloadEntries.push(exports.PayloadEntryChange.decode(reader, reader.uint32()));
+                    break;
+                case 4:
+                    message.baseVersionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseAddVersionRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.description =
+            object.description !== undefined && object.description !== null
+                ? String(object.description)
+                : '';
+        message.payloadEntries = ((_a = object.payloadEntries) !== null && _a !== void 0 ? _a : []).map((e) => exports.PayloadEntryChange.fromJSON(e));
+        message.baseVersionId =
+            object.baseVersionId !== undefined && object.baseVersionId !== null
+                ? String(object.baseVersionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.description !== undefined && (obj.description = message.description);
+        if (message.payloadEntries) {
+            obj.payloadEntries = message.payloadEntries.map((e) => e ? exports.PayloadEntryChange.toJSON(e) : undefined);
+        }
+        else {
+            obj.payloadEntries = [];
+        }
+        message.baseVersionId !== undefined && (obj.baseVersionId = message.baseVersionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c, _d;
+        const message = Object.assign({}, baseAddVersionRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.description = (_b = object.description) !== null && _b !== void 0 ? _b : '';
+        message.payloadEntries =
+            ((_c = object.payloadEntries) === null || _c === void 0 ? void 0 : _c.map((e) => exports.PayloadEntryChange.fromPartial(e))) || [];
+        message.baseVersionId = (_d = object.baseVersionId) !== null && _d !== void 0 ? _d : '';
+        return message;
+    },
+};
+const baseAddVersionMetadata = { secretId: '', versionId: '' };
+exports.AddVersionMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseAddVersionMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseAddVersionMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseAddVersionMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseListVersionsRequest = { secretId: '', pageSize: 0, pageToken: '' };
+exports.ListVersionsRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.pageSize !== 0) {
+            writer.uint32(16).int64(message.pageSize);
+        }
+        if (message.pageToken !== '') {
+            writer.uint32(26).string(message.pageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListVersionsRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.pageSize = longToNumber(reader.int64());
+                    break;
+                case 3:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseListVersionsRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.pageSize =
+            object.pageSize !== undefined && object.pageSize !== null ? Number(object.pageSize) : 0;
+        message.pageToken =
+            object.pageToken !== undefined && object.pageToken !== null
+                ? String(object.pageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.pageSize !== undefined && (obj.pageSize = Math.round(message.pageSize));
+        message.pageToken !== undefined && (obj.pageToken = message.pageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, baseListVersionsRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.pageSize = (_b = object.pageSize) !== null && _b !== void 0 ? _b : 0;
+        message.pageToken = (_c = object.pageToken) !== null && _c !== void 0 ? _c : '';
+        return message;
+    },
+};
+const baseListVersionsResponse = { nextPageToken: '' };
+exports.ListVersionsResponse = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        for (const v of message.versions) {
+            secret_1.Version.encode(v, writer.uint32(10).fork()).ldelim();
+        }
+        if (message.nextPageToken !== '') {
+            writer.uint32(18).string(message.nextPageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListVersionsResponse);
+        message.versions = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.versions.push(secret_1.Version.decode(reader, reader.uint32()));
+                    break;
+                case 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseListVersionsResponse);
+        message.versions = ((_a = object.versions) !== null && _a !== void 0 ? _a : []).map((e) => secret_1.Version.fromJSON(e));
+        message.nextPageToken =
+            object.nextPageToken !== undefined && object.nextPageToken !== null
+                ? String(object.nextPageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.versions) {
+            obj.versions = message.versions.map((e) => (e ? secret_1.Version.toJSON(e) : undefined));
+        }
+        else {
+            obj.versions = [];
+        }
+        message.nextPageToken !== undefined && (obj.nextPageToken = message.nextPageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseListVersionsResponse);
+        message.versions = ((_a = object.versions) === null || _a === void 0 ? void 0 : _a.map((e) => secret_1.Version.fromPartial(e))) || [];
+        message.nextPageToken = (_b = object.nextPageToken) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseScheduleVersionDestructionRequest = { secretId: '', versionId: '' };
+exports.ScheduleVersionDestructionRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        if (message.pendingPeriod !== undefined) {
+            duration_1.Duration.encode(message.pendingPeriod, writer.uint32(26).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseScheduleVersionDestructionRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                case 3:
+                    message.pendingPeriod = duration_1.Duration.decode(reader, reader.uint32());
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseScheduleVersionDestructionRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        message.pendingPeriod =
+            object.pendingPeriod !== undefined && object.pendingPeriod !== null
+                ? duration_1.Duration.fromJSON(object.pendingPeriod)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        message.pendingPeriod !== undefined &&
+            (obj.pendingPeriod = message.pendingPeriod
+                ? duration_1.Duration.toJSON(message.pendingPeriod)
+                : undefined);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseScheduleVersionDestructionRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        message.pendingPeriod =
+            object.pendingPeriod !== undefined && object.pendingPeriod !== null
+                ? duration_1.Duration.fromPartial(object.pendingPeriod)
+                : undefined;
+        return message;
+    },
+};
+const baseScheduleVersionDestructionMetadata = { secretId: '', versionId: '' };
+exports.ScheduleVersionDestructionMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        if (message.destroyAt !== undefined) {
+            timestamp_1.Timestamp.encode(toTimestamp(message.destroyAt), writer.uint32(26).fork()).ldelim();
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseScheduleVersionDestructionMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                case 3:
+                    message.destroyAt = fromTimestamp(timestamp_1.Timestamp.decode(reader, reader.uint32()));
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseScheduleVersionDestructionMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        message.destroyAt =
+            object.destroyAt !== undefined && object.destroyAt !== null
+                ? fromJsonTimestamp(object.destroyAt)
+                : undefined;
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        message.destroyAt !== undefined && (obj.destroyAt = message.destroyAt.toISOString());
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, baseScheduleVersionDestructionMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        message.destroyAt = (_c = object.destroyAt) !== null && _c !== void 0 ? _c : undefined;
+        return message;
+    },
+};
+const baseCancelVersionDestructionRequest = { secretId: '', versionId: '' };
+exports.CancelVersionDestructionRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseCancelVersionDestructionRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseCancelVersionDestructionRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseCancelVersionDestructionRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseCancelVersionDestructionMetadata = { secretId: '', versionId: '' };
+exports.CancelVersionDestructionMetadata = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.versionId !== '') {
+            writer.uint32(18).string(message.versionId);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseCancelVersionDestructionMetadata);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.versionId = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseCancelVersionDestructionMetadata);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.versionId =
+            object.versionId !== undefined && object.versionId !== null
+                ? String(object.versionId)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.versionId !== undefined && (obj.versionId = message.versionId);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseCancelVersionDestructionMetadata);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.versionId = (_b = object.versionId) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+const baseListSecretOperationsRequest = { secretId: '', pageSize: 0, pageToken: '' };
+exports.ListSecretOperationsRequest = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        if (message.secretId !== '') {
+            writer.uint32(10).string(message.secretId);
+        }
+        if (message.pageSize !== 0) {
+            writer.uint32(16).int64(message.pageSize);
+        }
+        if (message.pageToken !== '') {
+            writer.uint32(26).string(message.pageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListSecretOperationsRequest);
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.secretId = reader.string();
+                    break;
+                case 2:
+                    message.pageSize = longToNumber(reader.int64());
+                    break;
+                case 3:
+                    message.pageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        const message = Object.assign({}, baseListSecretOperationsRequest);
+        message.secretId =
+            object.secretId !== undefined && object.secretId !== null
+                ? String(object.secretId)
+                : '';
+        message.pageSize =
+            object.pageSize !== undefined && object.pageSize !== null ? Number(object.pageSize) : 0;
+        message.pageToken =
+            object.pageToken !== undefined && object.pageToken !== null
+                ? String(object.pageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        message.secretId !== undefined && (obj.secretId = message.secretId);
+        message.pageSize !== undefined && (obj.pageSize = Math.round(message.pageSize));
+        message.pageToken !== undefined && (obj.pageToken = message.pageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b, _c;
+        const message = Object.assign({}, baseListSecretOperationsRequest);
+        message.secretId = (_a = object.secretId) !== null && _a !== void 0 ? _a : '';
+        message.pageSize = (_b = object.pageSize) !== null && _b !== void 0 ? _b : 0;
+        message.pageToken = (_c = object.pageToken) !== null && _c !== void 0 ? _c : '';
+        return message;
+    },
+};
+const baseListSecretOperationsResponse = { nextPageToken: '' };
+exports.ListSecretOperationsResponse = {
+    encode(message, writer = minimal_1.default.Writer.create()) {
+        for (const v of message.operations) {
+            operation_1.Operation.encode(v, writer.uint32(10).fork()).ldelim();
+        }
+        if (message.nextPageToken !== '') {
+            writer.uint32(18).string(message.nextPageToken);
+        }
+        return writer;
+    },
+    decode(input, length) {
+        const reader = input instanceof minimal_1.default.Reader ? input : new minimal_1.default.Reader(input);
+        let end = length === undefined ? reader.len : reader.pos + length;
+        const message = Object.assign({}, baseListSecretOperationsResponse);
+        message.operations = [];
+        while (reader.pos < end) {
+            const tag = reader.uint32();
+            switch (tag >>> 3) {
+                case 1:
+                    message.operations.push(operation_1.Operation.decode(reader, reader.uint32()));
+                    break;
+                case 2:
+                    message.nextPageToken = reader.string();
+                    break;
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+            }
+        }
+        return message;
+    },
+    fromJSON(object) {
+        var _a;
+        const message = Object.assign({}, baseListSecretOperationsResponse);
+        message.operations = ((_a = object.operations) !== null && _a !== void 0 ? _a : []).map((e) => operation_1.Operation.fromJSON(e));
+        message.nextPageToken =
+            object.nextPageToken !== undefined && object.nextPageToken !== null
+                ? String(object.nextPageToken)
+                : '';
+        return message;
+    },
+    toJSON(message) {
+        const obj = {};
+        if (message.operations) {
+            obj.operations = message.operations.map((e) => (e ? operation_1.Operation.toJSON(e) : undefined));
+        }
+        else {
+            obj.operations = [];
+        }
+        message.nextPageToken !== undefined && (obj.nextPageToken = message.nextPageToken);
+        return obj;
+    },
+    fromPartial(object) {
+        var _a, _b;
+        const message = Object.assign({}, baseListSecretOperationsResponse);
+        message.operations = ((_a = object.operations) === null || _a === void 0 ? void 0 : _a.map((e) => operation_1.Operation.fromPartial(e))) || [];
+        message.nextPageToken = (_b = object.nextPageToken) !== null && _b !== void 0 ? _b : '';
+        return message;
+    },
+};
+/** A set of methods for managing secrets. */
+exports.SecretServiceService = {
+    /**
+     * Returns the specified secret.
+     *
+     * To get the list of all available secrets, make a [List] request.
+     * Use [PayloadService.Get] to get the payload (confidential data themselves) of the secret.
+     */
+    get: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Get',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.GetSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.GetSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(secret_1.Secret.encode(value).finish()),
+        responseDeserialize: (value) => secret_1.Secret.decode(value),
+    },
+    /** Retrieves the list of secrets in the specified folder. */
+    list: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/List',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.ListSecretsRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.ListSecretsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.ListSecretsResponse.encode(value).finish()),
+        responseDeserialize: (value) => exports.ListSecretsResponse.decode(value),
+    },
+    /** Creates a secret in the specified folder. */
+    create: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Create',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.CreateSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.CreateSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Updates the specified secret. */
+    update: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Update',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.UpdateSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.UpdateSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Deletes the specified secret. */
+    delete: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Delete',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.DeleteSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.DeleteSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Activates the specified secret. */
+    activate: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Activate',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.ActivateSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.ActivateSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Deactivates the specified secret. */
+    deactivate: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/Deactivate',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.DeactivateSecretRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.DeactivateSecretRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Retrieves the list of versions of the specified secret. */
+    listVersions: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/ListVersions',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.ListVersionsRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.ListVersionsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.ListVersionsResponse.encode(value).finish()),
+        responseDeserialize: (value) => exports.ListVersionsResponse.decode(value),
+    },
+    /** Adds new version based on a previous one. */
+    addVersion: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/AddVersion',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.AddVersionRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.AddVersionRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /**
+     * Schedules the specified version for destruction.
+     *
+     * Scheduled destruction can be cancelled with the [SecretService.CancelVersionDestruction] method.
+     */
+    scheduleVersionDestruction: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/ScheduleVersionDestruction',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.ScheduleVersionDestructionRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.ScheduleVersionDestructionRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Cancels previously scheduled version destruction, if the version hasn't been destroyed yet. */
+    cancelVersionDestruction: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/CancelVersionDestruction',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.CancelVersionDestructionRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.CancelVersionDestructionRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Lists operations for the specified secret. */
+    listOperations: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/ListOperations',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(exports.ListSecretOperationsRequest.encode(value).finish()),
+        requestDeserialize: (value) => exports.ListSecretOperationsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(exports.ListSecretOperationsResponse.encode(value).finish()),
+        responseDeserialize: (value) => exports.ListSecretOperationsResponse.decode(value),
+    },
+    /** Lists existing access bindings for the specified secret. */
+    listAccessBindings: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/ListAccessBindings',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(access_1.ListAccessBindingsRequest.encode(value).finish()),
+        requestDeserialize: (value) => access_1.ListAccessBindingsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(access_1.ListAccessBindingsResponse.encode(value).finish()),
+        responseDeserialize: (value) => access_1.ListAccessBindingsResponse.decode(value),
+    },
+    /** Sets access bindings for the secret. */
+    setAccessBindings: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/SetAccessBindings',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(access_1.SetAccessBindingsRequest.encode(value).finish()),
+        requestDeserialize: (value) => access_1.SetAccessBindingsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+    /** Updates access bindings for the secret. */
+    updateAccessBindings: {
+        path: '/yandex.cloud.lockbox.v1.SecretService/UpdateAccessBindings',
+        requestStream: false,
+        responseStream: false,
+        requestSerialize: (value) => Buffer.from(access_1.UpdateAccessBindingsRequest.encode(value).finish()),
+        requestDeserialize: (value) => access_1.UpdateAccessBindingsRequest.decode(value),
+        responseSerialize: (value) => Buffer.from(operation_1.Operation.encode(value).finish()),
+        responseDeserialize: (value) => operation_1.Operation.decode(value),
+    },
+};
+exports.SecretServiceClient = (0, grpc_js_1.makeGenericClientConstructor)(exports.SecretServiceService, 'yandex.cloud.lockbox.v1.SecretService');
+var globalThis = (() => {
+    if (typeof globalThis !== 'undefined')
+        return globalThis;
+    if (typeof self !== 'undefined')
+        return self;
+    if (typeof window !== 'undefined')
+        return window;
+    if (typeof global !== 'undefined')
+        return global;
+    throw 'Unable to locate global object';
+})();
+const atob = globalThis.atob || ((b64) => globalThis.Buffer.from(b64, 'base64').toString('binary'));
+function bytesFromBase64(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; ++i) {
+        arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+}
+const btoa = globalThis.btoa || ((bin) => globalThis.Buffer.from(bin, 'binary').toString('base64'));
+function base64FromBytes(arr) {
+    const bin = [];
+    for (const byte of arr) {
+        bin.push(String.fromCharCode(byte));
+    }
+    return btoa(bin.join(''));
+}
+function toTimestamp(date) {
+    const seconds = date.getTime() / 1000;
+    const nanos = (date.getTime() % 1000) * 1000000;
+    return { seconds, nanos };
+}
+function fromTimestamp(t) {
+    let millis = t.seconds * 1000;
+    millis += t.nanos / 1000000;
+    return new Date(millis);
+}
+function fromJsonTimestamp(o) {
+    if (o instanceof Date) {
+        return o;
+    }
+    else if (typeof o === 'string') {
+        return new Date(o);
+    }
+    else {
+        return fromTimestamp(timestamp_1.Timestamp.fromJSON(o));
+    }
+}
+function longToNumber(long) {
+    if (long.gt(Number.MAX_SAFE_INTEGER)) {
+        throw new globalThis.Error('Value is larger than Number.MAX_SAFE_INTEGER');
+    }
+    return long.toNumber();
 }
 if (minimal_1.default.util.Long !== long_1.default) {
     minimal_1.default.util.Long = long_1.default;
@@ -95717,6 +100335,10 @@ var github = __nccwpck_require__(93228);
 var dist = __nccwpck_require__(6629);
 // EXTERNAL MODULE: ./node_modules/@yandex-cloud/nodejs-sdk/dist/clients/serverless-containers-v1/index.js
 var serverless_containers_v1 = __nccwpck_require__(31574);
+// EXTERNAL MODULE: ./node_modules/@yandex-cloud/nodejs-sdk/dist/clients/lockbox-v1/index.js
+var lockbox_v1 = __nccwpck_require__(8245);
+// EXTERNAL MODULE: ./node_modules/@supercharge/promise-pool/dist/index.js
+var promise_pool_dist = __nccwpck_require__(15299);
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/helpers/bind.js
 
 
@@ -100932,6 +105554,8 @@ const fromServiceAccountJsonFile = (data) => ({
 
 
 
+
+
 const findContainerByName = async (session, folderId, containerName) => {
     const client = session.client(serverless_containers_v1.containerService.ContainerServiceClient);
     return client.list(container_service.ListContainersRequest.fromPartial({
@@ -101062,6 +105686,26 @@ const makeContainerPublic = async (session, containerId) => {
         ]
     }));
 };
+const resolveLatestLockboxVersions = async (session, secrets) => {
+    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest');
+    if (secretsWithLatest.length === 0) {
+        return secrets;
+    }
+    const client = session.client(lockbox_v1.secretService.SecretServiceClient);
+    const { results: resolvedSecrets } = await promise_pool_dist.PromisePool.for(secretsWithLatest)
+        .withConcurrency(5)
+        .process(async (secret) => {
+        const lockboxSecret = await client.get({ secretId: secret.id });
+        if (!lockboxSecret.currentVersion) {
+            throw new Error(`Secret ${secret.id} has no current version`);
+        }
+        return {
+            ...secret,
+            versionId: lockboxSecret.currentVersion.id
+        };
+    });
+    return secrets.map(s => resolvedSecrets.find(rs => rs.id === s.id) || s);
+};
 const run = async () => {
     try {
         (0,core.info)('start');
@@ -101097,6 +105741,7 @@ const run = async () => {
             required: true
         });
         const revisionInputs = parseRevisionInputs();
+        revisionInputs.secrets = await resolveLatestLockboxVersions(session, revisionInputs.secrets);
         (0,core.info)(`Folder ID: ${folderId}, container name: ${containerName}`);
         const containersResponse = await findContainerByName(session, folderId, containerName);
         let containerId;
