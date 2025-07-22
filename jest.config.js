@@ -1,13 +1,7 @@
-module.exports = {
-  moduleFileExtensions: [
-    "js",
-    "ts",
-    "json"
-  ],
-  transform: {
-    "^.+\\.(t|j)sx?$": ["@swc/jest"],
-  },
-  transformIgnorePatterns: [],
-  testEnvironment: "node",
-  testMatch: ["**/__tests__/**/*.test.[jt]s?(x)"]
-};
+export const moduleFileExtensions = ['js', 'ts', 'json']
+export const transform = {
+    '^.+\\.(t|j)sx?$': ['@swc/jest']
+}
+export const transformIgnorePatterns = []
+export const testEnvironment = 'node'
+export const testMatch = ['**/__tests__/**/*.test.[jt]s?(x)']

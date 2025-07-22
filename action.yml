@@ -70,7 +70,8 @@ inputs:
         required: false
         description: 'Environment variables. Multiline. Format: VARIABLE=value'
     revision-secrets:
-        description: 'Lockbox secrets. Pattern: "<environmentVariable>=<secretId>/<versionId>/<secretKey>". Multiline'
+        description:
+            'Lockbox secrets. Pattern: "${environmentVariable}=${secretId}/${versionId}/${secretKey}". Multiline'
         default: ''
         required: false
     revision-provisioned:
