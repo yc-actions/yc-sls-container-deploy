@@ -31,6 +31,7 @@ import { parseLogOptionsMinLevel } from './log-options-min-level'
 import { parseStorageMounts } from './storage-mounts'
 import { fromServiceAccountJsonFile } from './service-account-json'
 import { SessionConfig } from '@yandex-cloud/nodejs-sdk/dist/types'
+import { GetSecretRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret_service'
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T
 
@@ -48,6 +49,38 @@ const findContainerByName = async (
             filter: `name = "${containerName}"`
         })
     )
+}
+
+const findSecretCurrentVersionId = async (session: Session, secretId: string): Promise<string> => {
+    const lockboxClient = session.client(serviceClients.SecretServiceClient)
+
+    const listSecretsResponse = await lockboxClient.get(
+        GetSecretRequest.fromPartial({
+            secretId
+        })
+    )
+
+    if (!listSecretsResponse.currentVersion) {
+        throw new Error(`Failed to find currentVersion for secretId: ${secretId}`)
+    }
+    return listSecretsResponse.currentVersion?.id
+}
+
+const transformSecrets = async (session: Session, secrets: Secret[]): Promise<Secret[]> => {
+    const transformedSecrets: Secret[] = []
+
+    for (const secret of secrets) {
+        const transformedSecret = { ...secret }
+
+        // Getting current version id if versionId is $latest
+        if (secret.versionId === '$latest') {
+            transformedSecret.versionId = await findSecretCurrentVersionId(session, transformedSecret.id)
+        }
+
+        transformedSecrets.push(transformedSecret)
+    }
+
+    return transformedSecrets
 }
 
 const createContainer = async (session: Session, folderId: string, containerName: string): Promise<Container> => {
@@ -274,7 +307,12 @@ const run = async (): Promise<void> => {
         }
         setOutput('id', containerId)
         info('Creating new revision.')
-        const rev = await createRevision(session, containerId, revisionInputs)
+
+        // Transform secrets to resolve latest versions
+        const transformedSecrets = await transformSecrets(session, revisionInputs.secrets)
+        const updatedRevisionInputs = { ...revisionInputs, secrets: transformedSecrets }
+
+        const rev = await createRevision(session, containerId, updatedRevisionInputs)
 
         info(`Revision created. Id: ${rev.id}`)
 
@@ -295,7 +333,7 @@ const run = async (): Promise<void> => {
 export type Secret = {
     environmentVariable: string
     id: string
-    versionId: string
+    versionId: string | undefined
     key: string
 }
 
@@ -337,7 +375,6 @@ export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
 
     for (const line of secrets) {
         const secret = parseLockboxSecretDefinition(line)
-
         secretsArr.push(secret)
     }
 
