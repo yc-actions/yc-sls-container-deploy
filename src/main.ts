@@ -52,6 +52,8 @@ const findContainerByName = async (
 }
 
 const findSecretCurrentVersionId = async (session: Session, secretId: string): Promise<string> => {
+    info(`Getting latest version for Secret with id ${secretId}`)
+
     const lockboxClient = session.client(serviceClients.SecretServiceClient)
 
     const listSecretsResponse = await lockboxClient.get(
@@ -63,18 +65,28 @@ const findSecretCurrentVersionId = async (session: Session, secretId: string): P
     if (!listSecretsResponse.currentVersion) {
         throw new Error(`Failed to find currentVersion for secretId: ${secretId}`)
     }
+
+    info(`Latest versionId for Secret with id ${secretId} is ${listSecretsResponse.currentVersion?.id}`)
+
     return listSecretsResponse.currentVersion?.id
 }
 
 const transformSecrets = async (session: Session, secrets: Secret[]): Promise<Secret[]> => {
     const transformedSecrets: Secret[] = []
 
+    // To prevent duplicate requests for secrets with same id
+    const secretCurrentVersionMapper: Partial<Record<string, string>> = {}
+
     for (const secret of secrets) {
         const transformedSecret = { ...secret }
 
         // Getting current version id if versionId is $latest
         if (secret.versionId === '$latest') {
-            transformedSecret.versionId = await findSecretCurrentVersionId(session, transformedSecret.id)
+            const currentVersionFromMapper = secretCurrentVersionMapper[secret.id]
+
+            const currentVersion = currentVersionFromMapper ?? findSecretCurrentVersionId(session, transformedSecret.id)
+
+            transformedSecret.versionId = await currentVersion
         }
 
         transformedSecrets.push(transformedSecret)
