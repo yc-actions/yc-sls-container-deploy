@@ -251,7 +251,9 @@ export const resolveLatestLockboxVersions = async (session: Session, secrets: Se
         throw new Error(`Failed to resolve latest versions for secrets: ${errorMessages}`)
     }
     return secrets.map(s => {
-        const resolved = resolvedSecrets.find(rs => rs.id === s.id && rs.key === s.key && rs.environmentVariable === s.environmentVariable)
+        const resolved = resolvedSecrets.find(
+            rs => rs.id === s.id && rs.key === s.key && rs.environmentVariable === s.environmentVariable
+        )
         return resolved || s
     })
 }
@@ -334,7 +336,7 @@ export type Secret = {
 
 export const parseLockboxSecretDefinition = (line: string): Secret | null => {
     const trimmedLine = line.trim()
-    
+
     // Skip empty lines and comments
     if (trimmedLine === '' || trimmedLine.startsWith('#')) {
         return null
@@ -342,7 +344,7 @@ export const parseLockboxSecretDefinition = (line: string): Secret | null => {
 
     // Remove inline comments (everything after #)
     const lineWithoutComments = trimmedLine.split('#')[0].trim()
-    
+
     const regex = /^(?<environmentVariable>.+)=(?<secretId>.+)\/(?<versionId>.+)\/(?<key>.+)$/gm
     const m = regex.exec(lineWithoutComments)
 
@@ -365,7 +367,7 @@ export const parseEnvironment = (envLines: string[]): Environment => {
 
     for (const line of envLines) {
         const trimmedLine = line.trim()
-        
+
         // Skip empty lines and comments
         if (trimmedLine === '' || trimmedLine.startsWith('#')) {
             continue
@@ -375,7 +377,7 @@ export const parseEnvironment = (envLines: string[]): Environment => {
         if (i === -1) {
             continue // Skip lines without '=' character
         }
-        
+
         const [key, value] = [trimmedLine.slice(0, i).trim(), trimmedLine.slice(i + 1).trim()]
         environment[key] = value
     }

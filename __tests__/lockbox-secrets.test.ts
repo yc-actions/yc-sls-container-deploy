@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { Session } from '@yandex-cloud/nodejs-sdk'
 import { Secret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
-import { resolveLatestLockboxVersions, Secret as AppSecret, parseLockboxVariablesMapping, parseLockboxSecretDefinition } from '../src/main'
+import {
+    resolveLatestLockboxVersions,
+    Secret as AppSecret,
+    parseLockboxVariablesMapping,
+    parseLockboxSecretDefinition
+} from '../src/main'
 import { __setGetSecretFail, __setSecretList } from './__mocks__/@yandex-cloud/nodejs-sdk/lockbox-v1'
 
 describe('resolveLatestLockboxVersions', () => {
@@ -116,7 +121,7 @@ describe('resolveLatestLockboxVersions', () => {
             { id: 'secret2', versionId: 'latest', key: 'REDIS_URL', environmentVariable: 'REDIS_URL' },
             { id: 'secret3', versionId: 'version5', key: 'JWT_SECRET', environmentVariable: 'JWT_SECRET' }
         ]
-        
+
         // Set up multiple secrets in the mock
         const lockboxSecrets: Secret[] = [
             {
@@ -180,7 +185,7 @@ describe('resolveLatestLockboxVersions', () => {
             { id: 'secret2', versionId: 'latest', key: 'API_KEY', environmentVariable: 'API_KEY_LATEST' },
             { id: 'secret2', versionId: 'version5', key: 'API_KEY', environmentVariable: 'API_KEY_STABLE' }
         ]
-        
+
         // Set up multiple secrets in the mock
         const lockboxSecrets: Secret[] = [
             {
@@ -282,13 +287,13 @@ describe('resolveLatestLockboxVersions', () => {
 
     it('should return null for comments and empty lines in parseLockboxSecretDefinition', () => {
         const { parseLockboxSecretDefinition } = require('../src/main')
-        
+
         // Test empty lines and comments should return null
         expect(parseLockboxSecretDefinition('')).toBeNull()
         expect(parseLockboxSecretDefinition('  ')).toBeNull()
         expect(parseLockboxSecretDefinition('# This is a comment')).toBeNull()
         expect(parseLockboxSecretDefinition('  # Comment with spaces')).toBeNull()
-        
+
         // Test valid line should return Secret object
         expect(parseLockboxSecretDefinition('ENV_VAR=id/version/key')).toEqual({
             environmentVariable: 'ENV_VAR',
