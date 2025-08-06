@@ -8,6 +8,7 @@ image name and tag.
 <!-- toc -->
 
 - [Usage](#usage)
+- [Secrets](#secrets)
 - [Permissions](#permissions)
 - [License Summary](#license-summary)
 
@@ -75,6 +76,98 @@ want to use. The action will use the first one it finds.
 
 See [action.yml](action.yml) for the full documentation for this action's inputs and outputs.
 
+## Secrets
+
+The action supports Yandex Cloud Lockbox secrets integration. You can specify secrets using the `revision-secrets` input parameter.
+
+### Secret Format
+
+Secrets should be specified in the following format:
+```
+environmentVariable=secretId/versionId/key
+```
+
+Where:
+- `environmentVariable` - the name of the environment variable that will be available in the container
+- `secretId` - the ID of the Lockbox secret
+- `versionId` - the version ID of the secret (use `latest` to automatically resolve to the current version)
+- `key` - the key within the secret payload
+
+**Note**: Lines starting with `#` are treated as comments and will be ignored. You can also add inline comments after the secret definition using `#`.
+
+### Usage Examples
+
+#### Basic Secret Usage
+```yaml
+    - name: Deploy Serverless Container
+      uses: yc-actions/yc-sls-container-deploy@v4
+      with:
+        # ... other parameters ...
+        revision-secrets: |
+          DATABASE_URL=secret123/version1/DATABASE_URL
+          API_KEY=secret456/latest/API_KEY
+```
+
+#### Multiple Secrets with Different Versions
+```yaml
+    - name: Deploy Serverless Container
+      uses: yc-actions/yc-sls-container-deploy@v4
+      with:
+        # ... other parameters ...
+        revision-secrets: |
+          DATABASE_URL_LATEST=secret123/latest/DATABASE_URL
+          DATABASE_URL_STABLE=secret123/version2/DATABASE_URL
+          API_KEY_LATEST=secret456/latest/API_KEY
+          API_KEY_STABLE=secret456/version5/API_KEY
+```
+
+#### Same Key with Different Environment Variables
+You can use the same secret key with different versions and map them to different environment variables:
+
+```yaml
+    - name: Deploy Serverless Container
+      uses: yc-actions/yc-sls-container-deploy@v4
+      with:
+        # ... other parameters ...
+        revision-secrets: |
+          # Latest version for development
+          DATABASE_URL_DEV=secret123/latest/DATABASE_URL
+          # Stable version for production
+          DATABASE_URL_PROD=secret123/version2/DATABASE_URL
+          # Latest API key
+          API_KEY_LATEST=secret456/latest/API_KEY
+          # Specific version API key
+          API_KEY_STABLE=secret456/version5/API_KEY
+```
+
+#### Using Comments
+You can add comments to document your secrets:
+
+```yaml
+    - name: Deploy Serverless Container
+      uses: yc-actions/yc-sls-container-deploy@v4
+      with:
+        # ... other parameters ...
+        revision-secrets: |
+          # Database configuration
+          DATABASE_URL=secret123/latest/DATABASE_URL # Latest database URL
+          API_KEY=secret456/version2/API_KEY  # Stable API key
+          
+          # Redis connection
+          REDIS_URL=secret789/latest/REDIS_URL # Redis connection string
+          
+          # JWT configuration
+          JWT_SECRET=secret999/version5/JWT_SECRET  # JWT signing key
+```
+
+### Latest Version Resolution
+
+When you specify `latest` as the version ID, the action will automatically resolve it to the current version of the secret by querying the Lockbox API. This ensures you always get the most up-to-date version without manually updating version IDs.
+
+### Concurrency Control
+
+The action uses concurrency limiting (5 concurrent requests) when resolving "latest" versions to avoid overwhelming the Lockbox API.
+
 ## Permissions
 
 ### Deploy time permissions
@@ -90,6 +183,7 @@ Additionally, you may need to grant the following optional roles depending on yo
 | `vpc.user`                    | Deploying the container in a VPC with a specified network ID                           |
 | `serverless-containers.admin` | Making the container public                                                            |
 | `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly. |
+| `lockbox.payloadViewer`       | To access Lockbox secrets during deployment. Required for secret resolution.           |
 
 ### Runtime permissions
 

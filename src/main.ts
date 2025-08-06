@@ -11,6 +11,9 @@ import {
 import { context } from '@actions/github'
 import { errors, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
 import { containerService } from '@yandex-cloud/nodejs-sdk/serverless-containers-v1'
+import { secretService } from '@yandex-cloud/nodejs-sdk/lockbox-v1'
+import { Secret as LockboxSecret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
+import { PromisePool } from '@supercharge/promise-pool'
 import axios from 'axios'
 
 import {
@@ -225,6 +228,36 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
     )
 }
 
+export const resolveLatestLockboxVersions = async (session: Session, secrets: Secret[]): Promise<Secret[]> => {
+    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest')
+    if (secretsWithLatest.length === 0) {
+        return secrets
+    }
+    const client = session.client(secretService.SecretServiceClient)
+    const { results: resolvedSecrets, errors: resolveErrors } = await PromisePool.for(secretsWithLatest)
+        .withConcurrency(5)
+        .process(async secret => {
+            const lockboxSecret: LockboxSecret = await client.get({ secretId: secret.id })
+            if (!lockboxSecret.currentVersion) {
+                throw new Error(`Secret ${secret.id} has no current version`)
+            }
+            return {
+                ...secret,
+                versionId: lockboxSecret.currentVersion.id
+            }
+        })
+    if (resolveErrors.length > 0) {
+        const errorMessages = resolveErrors.map(e => e.message).join(', ')
+        throw new Error(`Failed to resolve latest versions for secrets: ${errorMessages}`)
+    }
+    return secrets.map(s => {
+        const resolved = resolvedSecrets.find(
+            rs => rs.id === s.id && rs.key === s.key && rs.environmentVariable === s.environmentVariable
+        )
+        return resolved || s
+    })
+}
+
 export const run = async (): Promise<void> => {
     try {
         info('start')
@@ -258,6 +291,7 @@ export const run = async (): Promise<void> => {
             required: true
         })
         const revisionInputs = parseRevisionInputs()
+        revisionInputs.secrets = await resolveLatestLockboxVersions(session, revisionInputs.secrets)
 
         info(`Folder ID: ${folderId}, container name: ${containerName}`)
         const containersResponse = await findContainerByName(session, folderId, containerName)
@@ -300,9 +334,19 @@ export type Secret = {
     key: string
 }
 
-const parseLockboxSecretDefinition = (line: string): Secret => {
+export const parseLockboxSecretDefinition = (line: string): Secret | null => {
+    const trimmedLine = line.trim()
+
+    // Skip empty lines and comments
+    if (trimmedLine === '' || trimmedLine.startsWith('#')) {
+        return null
+    }
+
+    // Remove inline comments (everything after #)
+    const lineWithoutComments = trimmedLine.split('#')[0].trim()
+
     const regex = /^(?<environmentVariable>.+)=(?<secretId>.+)\/(?<versionId>.+)\/(?<key>.+)$/gm
-    const m = regex.exec(line.trim())
+    const m = regex.exec(lineWithoutComments)
 
     if (!m?.groups) {
         throw new Error(`Line: '${line}' has wrong format`)
@@ -322,9 +366,19 @@ export const parseEnvironment = (envLines: string[]): Environment => {
     const environment: Environment = {}
 
     for (const line of envLines) {
-        const i = line.indexOf('=')
-        const [key, value] = [line.slice(0, i).trim(), line.slice(i + 1).trim()]
+        const trimmedLine = line.trim()
 
+        // Skip empty lines and comments
+        if (trimmedLine === '' || trimmedLine.startsWith('#')) {
+            continue
+        }
+
+        const i = trimmedLine.indexOf('=')
+        if (i === -1) {
+            continue // Skip lines without '=' character
+        }
+
+        const [key, value] = [trimmedLine.slice(0, i).trim(), trimmedLine.slice(i + 1).trim()]
         environment[key] = value
     }
 
@@ -338,8 +392,9 @@ export const parseLockboxVariablesMapping = (secrets: string[]): Secret[] => {
 
     for (const line of secrets) {
         const secret = parseLockboxSecretDefinition(line)
-
-        secretsArr.push(secret)
+        if (secret) {
+            secretsArr.push(secret)
+        }
     }
 
     info(`SecretsObject: "${JSON.stringify(secretsArr)}"`)
