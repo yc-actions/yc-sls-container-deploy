@@ -53,7 +53,7 @@
     "eslint-plugin-jsonc": "^2.20.1",
     "eslint-plugin-prefer-arrow-functions": "^3.6.2",
     "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-unicorn": "^60.0.0",
+    "eslint-plugin-unicorn": "^61.0.2",
     "globals": "^16.3.0",
     "jest": "^30.0.4",
     "js-yaml": "^4.1.0",
