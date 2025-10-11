@@ -93,6 +93,11 @@ inputs:
       S3_PATH Pattern: "bucketId/bucketFolder" or "bucketId". bucketFolder can be empty to mount all bucket.
       ACCESS_MODE is optional parameter. Possible values: "read-only", "ro", "readOnly", "read_only", "ReadOnly", "read-write", "rw", "readWrite", "read_write", "ReadWrite". Default value - "read-only"'
     required: false
+  revision-ephemeral-mounts:
+    description: 'Ephemeral disk mounts. Pattern: "MOUNT_PATH:SIZE[:ACCESS_MODE]". Multiline.
+      SIZE format matches memory input, e.g. 512Mb or 5Gb. ACCESS_MODE is optional and mirrors storage mounts; default is read-write.
+      Example: "/app/tmp:5Gb:rw"'
+    required: false
 outputs:
   rev:
     description: 'Id of created revision'

@@ -26,13 +26,15 @@ import {
     Container,
     LogOptions,
     Revision,
-    StorageMount
+    StorageMount,
+    Mount
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
 import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/logging/v1/log_entry'
 import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/access/access'
 import { parseMemory } from './memory'
 import { parseLogOptionsMinLevel } from './log-options-min-level'
 import { parseStorageMounts } from './storage-mounts'
+import { parseEphemeralMounts } from './ephemeral-mounts'
 import { fromServiceAccountJsonFile } from './service-account-json'
 import { SessionConfig } from '@yandex-cloud/nodejs-sdk/dist/types'
 
@@ -140,6 +142,7 @@ interface IRevisionInputs {
     secrets: Secret[]
     logOptions: LogOptions
     storageMounts?: StorageMount[]
+    mounts?: Mount[]
     networkId?: string
 }
 
@@ -175,6 +178,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     }
 
     const storageMounts: StorageMount[] | undefined = parseStorageMounts(getMultilineInput('revision-storage-mounts'))
+    const mounts = parseEphemeralMounts(getMultilineInput('revision-ephemeral-mounts'))
 
     const logOptions = LogOptions.fromJSON({
         disabled: logOptionsDisabled,
@@ -205,7 +209,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
         secrets,
         networkId,
         logOptions,
-        storageMounts
+        storageMounts,
+        mounts
     }
 }
 
