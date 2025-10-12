@@ -3845,7 +3845,7 @@ class EmptyCallCredentials extends CallCredentials {
 /***/ }),
 
 /***/ 61803:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
 
@@ -3867,7 +3867,23 @@ class EmptyCallCredentials extends CallCredentials {
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.InterceptingListenerImpl = void 0;
+exports.statusOrFromValue = statusOrFromValue;
+exports.statusOrFromError = statusOrFromError;
 exports.isInterceptingListener = isInterceptingListener;
+const metadata_1 = __nccwpck_require__(36100);
+function statusOrFromValue(value) {
+    return {
+        ok: true,
+        value: value
+    };
+}
+function statusOrFromError(error) {
+    var _a;
+    return {
+        ok: false,
+        error: Object.assign(Object.assign({}, error), { metadata: (_a = error.metadata) !== null && _a !== void 0 ? _a : new metadata_1.Metadata() })
+    };
+}
 function isInterceptingListener(listener) {
     return (listener.onReceiveMetadata !== undefined &&
         listener.onReceiveMetadata.length === 1);
@@ -4017,6 +4033,10 @@ class ClientUnaryCallImpl extends events_1.EventEmitter {
         var _a, _b;
         return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getPeer()) !== null && _b !== void 0 ? _b : 'unknown';
     }
+    getAuthContext() {
+        var _a, _b;
+        return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getAuthContext()) !== null && _b !== void 0 ? _b : null;
+    }
 }
 exports.ClientUnaryCallImpl = ClientUnaryCallImpl;
 class ClientReadableStreamImpl extends stream_1.Readable {
@@ -4031,6 +4051,10 @@ class ClientReadableStreamImpl extends stream_1.Readable {
     getPeer() {
         var _a, _b;
         return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getPeer()) !== null && _b !== void 0 ? _b : 'unknown';
+    }
+    getAuthContext() {
+        var _a, _b;
+        return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getAuthContext()) !== null && _b !== void 0 ? _b : null;
     }
     _read(_size) {
         var _a;
@@ -4050,6 +4074,10 @@ class ClientWritableStreamImpl extends stream_1.Writable {
     getPeer() {
         var _a, _b;
         return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getPeer()) !== null && _b !== void 0 ? _b : 'unknown';
+    }
+    getAuthContext() {
+        var _a, _b;
+        return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getAuthContext()) !== null && _b !== void 0 ? _b : null;
     }
     _write(chunk, encoding, cb) {
         var _a;
@@ -4082,6 +4110,10 @@ class ClientDuplexStreamImpl extends stream_1.Duplex {
     getPeer() {
         var _a, _b;
         return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getPeer()) !== null && _b !== void 0 ? _b : 'unknown';
+    }
+    getAuthContext() {
+        var _a, _b;
+        return (_b = (_a = this.call) === null || _a === void 0 ? void 0 : _a.getAuthContext()) !== null && _b !== void 0 ? _b : null;
     }
     _read(_size) {
         var _a;
@@ -4752,6 +4784,7 @@ exports.recognizedOptions = {
     'grpc.lb.ring_hash.ring_size_cap': true,
     'grpc-node.retry_max_attempts_limit': true,
     'grpc-node.flow_control_window': true,
+    'grpc.server_call_metric_recording': true
 };
 function channelOptionsEqual(options1, options2) {
     const keys1 = Object.keys(options1).sort();
@@ -5700,6 +5733,9 @@ class InterceptingCall {
             }
         });
     }
+    getAuthContext() {
+        return this.nextCall.getAuthContext();
+    }
 }
 exports.InterceptingCall = InterceptingCall;
 function getCall(channel, path, options) {
@@ -5789,6 +5825,9 @@ class BaseInterceptingCall {
     }
     halfClose() {
         this.call.halfClose();
+    }
+    getAuthContext() {
+        return this.call.getAuthContext();
     }
 }
 /**
@@ -6954,10 +6993,19 @@ function formatDateDifference(startDate, endDate) {
  *
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.durationMessageToDuration = durationMessageToDuration;
 exports.msToDuration = msToDuration;
 exports.durationToMs = durationToMs;
 exports.isDuration = isDuration;
+exports.isDurationMessage = isDurationMessage;
 exports.parseDuration = parseDuration;
+exports.durationToString = durationToString;
+function durationMessageToDuration(message) {
+    return {
+        seconds: Number.parseInt(message.seconds),
+        nanos: message.nanos
+    };
+}
 function msToDuration(millis) {
     return {
         seconds: (millis / 1000) | 0,
@@ -6970,6 +7018,9 @@ function durationToMs(duration) {
 function isDuration(value) {
     return typeof value.seconds === 'number' && typeof value.nanos === 'number';
 }
+function isDurationMessage(value) {
+    return typeof value.seconds === 'string' && typeof value.nanos === 'number';
+}
 const durationRegex = /^(\d+)(?:\.(\d+))?s$/;
 function parseDuration(value) {
     const match = value.match(durationRegex);
@@ -6980,6 +7031,22 @@ function parseDuration(value) {
         seconds: Number.parseInt(match[1], 10),
         nanos: match[2] ? Number.parseInt(match[2].padEnd(9, '0'), 10) : 0
     };
+}
+function durationToString(duration) {
+    if (duration.nanos === 0) {
+        return `${duration.seconds}s`;
+    }
+    let scaleFactor;
+    if (duration.nanos % 1000000 === 0) {
+        scaleFactor = 1000000;
+    }
+    else if (duration.nanos % 1000 === 0) {
+        scaleFactor = 1000;
+    }
+    else {
+        scaleFactor = 1;
+    }
+    return `${duration.seconds}.${duration.nanos / scaleFactor}s`;
 }
 //# sourceMappingURL=duration.js.map
 
@@ -7067,13 +7134,14 @@ function getErrorCode(error) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.SUBCHANNEL_ARGS_EXCLUDE_KEY_PREFIX = exports.createCertificateProviderChannelCredentials = exports.FileWatcherCertificateProvider = exports.createCertificateProviderServerCredentials = exports.createServerCredentialsWithInterceptors = exports.BaseSubchannelWrapper = exports.registerAdminService = exports.FilterStackFactory = exports.BaseFilter = exports.PickResultType = exports.QueuePicker = exports.UnavailablePicker = exports.ChildLoadBalancerHandler = exports.EndpointMap = exports.endpointHasAddress = exports.endpointToString = exports.subchannelAddressToString = exports.LeafLoadBalancer = exports.isLoadBalancerNameRegistered = exports.parseLoadBalancingConfig = exports.selectLbConfigFromList = exports.registerLoadBalancerType = exports.createChildChannelControlHelper = exports.BackoffTimeout = exports.parseDuration = exports.durationToMs = exports.splitHostPort = exports.uriToString = exports.createResolver = exports.registerResolver = exports.log = exports.trace = void 0;
+exports.SUBCHANNEL_ARGS_EXCLUDE_KEY_PREFIX = exports.createCertificateProviderChannelCredentials = exports.FileWatcherCertificateProvider = exports.createCertificateProviderServerCredentials = exports.createServerCredentialsWithInterceptors = exports.BaseSubchannelWrapper = exports.registerAdminService = exports.FilterStackFactory = exports.BaseFilter = exports.statusOrFromError = exports.statusOrFromValue = exports.PickResultType = exports.QueuePicker = exports.UnavailablePicker = exports.ChildLoadBalancerHandler = exports.EndpointMap = exports.endpointHasAddress = exports.endpointToString = exports.subchannelAddressToString = exports.LeafLoadBalancer = exports.isLoadBalancerNameRegistered = exports.parseLoadBalancingConfig = exports.selectLbConfigFromList = exports.registerLoadBalancerType = exports.createChildChannelControlHelper = exports.BackoffTimeout = exports.parseDuration = exports.durationToMs = exports.splitHostPort = exports.uriToString = exports.CHANNEL_ARGS_CONFIG_SELECTOR_KEY = exports.createResolver = exports.registerResolver = exports.log = exports.trace = void 0;
 var logging_1 = __nccwpck_require__(8536);
 Object.defineProperty(exports, "trace", ({ enumerable: true, get: function () { return logging_1.trace; } }));
 Object.defineProperty(exports, "log", ({ enumerable: true, get: function () { return logging_1.log; } }));
 var resolver_1 = __nccwpck_require__(76255);
 Object.defineProperty(exports, "registerResolver", ({ enumerable: true, get: function () { return resolver_1.registerResolver; } }));
 Object.defineProperty(exports, "createResolver", ({ enumerable: true, get: function () { return resolver_1.createResolver; } }));
+Object.defineProperty(exports, "CHANNEL_ARGS_CONFIG_SELECTOR_KEY", ({ enumerable: true, get: function () { return resolver_1.CHANNEL_ARGS_CONFIG_SELECTOR_KEY; } }));
 var uri_parser_1 = __nccwpck_require__(56027);
 Object.defineProperty(exports, "uriToString", ({ enumerable: true, get: function () { return uri_parser_1.uriToString; } }));
 Object.defineProperty(exports, "splitHostPort", ({ enumerable: true, get: function () { return uri_parser_1.splitHostPort; } }));
@@ -7101,6 +7169,9 @@ var picker_1 = __nccwpck_require__(71663);
 Object.defineProperty(exports, "UnavailablePicker", ({ enumerable: true, get: function () { return picker_1.UnavailablePicker; } }));
 Object.defineProperty(exports, "QueuePicker", ({ enumerable: true, get: function () { return picker_1.QueuePicker; } }));
 Object.defineProperty(exports, "PickResultType", ({ enumerable: true, get: function () { return picker_1.PickResultType; } }));
+var call_interface_1 = __nccwpck_require__(61803);
+Object.defineProperty(exports, "statusOrFromValue", ({ enumerable: true, get: function () { return call_interface_1.statusOrFromValue; } }));
+Object.defineProperty(exports, "statusOrFromError", ({ enumerable: true, get: function () { return call_interface_1.statusOrFromError; } }));
 var filter_1 = __nccwpck_require__(81467);
 Object.defineProperty(exports, "BaseFilter", ({ enumerable: true, get: function () { return filter_1.BaseFilter; } }));
 var filter_stack_1 = __nccwpck_require__(95726);
@@ -7559,7 +7630,7 @@ function getProxiedConnection(address, channelOptions) {
  *
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.experimental = exports.ServerInterceptingCall = exports.ResponderBuilder = exports.ServerListenerBuilder = exports.addAdminServicesToServer = exports.getChannelzHandlers = exports.getChannelzServiceDefinition = exports.InterceptorConfigurationError = exports.InterceptingCall = exports.RequesterBuilder = exports.ListenerBuilder = exports.StatusBuilder = exports.getClientChannel = exports.ServerCredentials = exports.Server = exports.setLogVerbosity = exports.setLogger = exports.load = exports.loadObject = exports.CallCredentials = exports.ChannelCredentials = exports.waitForClientReady = exports.closeClient = exports.Channel = exports.makeGenericClientConstructor = exports.makeClientConstructor = exports.loadPackageDefinition = exports.Client = exports.compressionAlgorithms = exports.propagate = exports.connectivityState = exports.status = exports.logVerbosity = exports.Metadata = exports.credentials = void 0;
+exports.experimental = exports.ServerMetricRecorder = exports.ServerInterceptingCall = exports.ResponderBuilder = exports.ServerListenerBuilder = exports.addAdminServicesToServer = exports.getChannelzHandlers = exports.getChannelzServiceDefinition = exports.InterceptorConfigurationError = exports.InterceptingCall = exports.RequesterBuilder = exports.ListenerBuilder = exports.StatusBuilder = exports.getClientChannel = exports.ServerCredentials = exports.Server = exports.setLogVerbosity = exports.setLogger = exports.load = exports.loadObject = exports.CallCredentials = exports.ChannelCredentials = exports.waitForClientReady = exports.closeClient = exports.Channel = exports.makeGenericClientConstructor = exports.makeClientConstructor = exports.loadPackageDefinition = exports.Client = exports.compressionAlgorithms = exports.propagate = exports.connectivityState = exports.status = exports.logVerbosity = exports.Metadata = exports.credentials = void 0;
 const call_credentials_1 = __nccwpck_require__(79190);
 Object.defineProperty(exports, "CallCredentials", ({ enumerable: true, get: function () { return call_credentials_1.CallCredentials; } }));
 const channel_1 = __nccwpck_require__(86918);
@@ -7666,6 +7737,8 @@ var server_interceptors_1 = __nccwpck_require__(42151);
 Object.defineProperty(exports, "ServerListenerBuilder", ({ enumerable: true, get: function () { return server_interceptors_1.ServerListenerBuilder; } }));
 Object.defineProperty(exports, "ResponderBuilder", ({ enumerable: true, get: function () { return server_interceptors_1.ResponderBuilder; } }));
 Object.defineProperty(exports, "ServerInterceptingCall", ({ enumerable: true, get: function () { return server_interceptors_1.ServerInterceptingCall; } }));
+var orca_1 = __nccwpck_require__(82124);
+Object.defineProperty(exports, "ServerMetricRecorder", ({ enumerable: true, get: function () { return orca_1.ServerMetricRecorder; } }));
 const experimental = __nccwpck_require__(20079);
 exports.experimental = experimental;
 const resolver_dns = __nccwpck_require__(51149);
@@ -7674,6 +7747,7 @@ const resolver_ip = __nccwpck_require__(52617);
 const load_balancer_pick_first = __nccwpck_require__(78639);
 const load_balancer_round_robin = __nccwpck_require__(71936);
 const load_balancer_outlier_detection = __nccwpck_require__(95343);
+const load_balancer_weighted_round_robin = __nccwpck_require__(47616);
 const channelz = __nccwpck_require__(68198);
 (() => {
     resolver_dns.setup();
@@ -7682,6 +7756,7 @@ const channelz = __nccwpck_require__(68198);
     load_balancer_pick_first.setup();
     load_balancer_round_robin.setup();
     load_balancer_outlier_detection.setup();
+    load_balancer_weighted_round_robin.setup();
     channelz.setup();
 })();
 //# sourceMappingURL=index.js.map
@@ -8388,7 +8463,7 @@ class ChildLoadBalancerHandler {
      * @param lbConfig
      * @param attributes
      */
-    updateAddressList(endpointList, lbConfig, options) {
+    updateAddressList(endpointList, lbConfig, options, resolutionNote) {
         let childToUpdate;
         if (this.currentChild === null ||
             this.latestConfig === null ||
@@ -8417,7 +8492,7 @@ class ChildLoadBalancerHandler {
             }
         }
         this.latestConfig = lbConfig;
-        childToUpdate.updateAddressList(endpointList, lbConfig, options);
+        return childToUpdate.updateAddressList(endpointList, lbConfig, options, resolutionNote);
     }
     exitIdle() {
         if (this.currentChild) {
@@ -8708,7 +8783,7 @@ class OutlierDetectionPicker {
             if (mapEntry) {
                 let onCallEnded = wrappedPick.onCallEnded;
                 if (this.countCalls) {
-                    onCallEnded = statusCode => {
+                    onCallEnded = (statusCode, details, metadata) => {
                         var _a;
                         if (statusCode === constants_1.Status.OK) {
                             mapEntry.counter.addSuccess();
@@ -8716,7 +8791,7 @@ class OutlierDetectionPicker {
                         else {
                             mapEntry.counter.addFailure();
                         }
-                        (_a = wrappedPick.onCallEnded) === null || _a === void 0 ? void 0 : _a.call(wrappedPick, statusCode);
+                        (_a = wrappedPick.onCallEnded) === null || _a === void 0 ? void 0 : _a.call(wrappedPick, statusCode, details, metadata);
                     };
                 }
                 return Object.assign(Object.assign({}, wrappedPick), { subchannel: subchannelWrapper.getWrappedSubchannel(), onCallEnded: onCallEnded });
@@ -8963,25 +9038,27 @@ class OutlierDetectionLoadBalancer {
             }
         }
     }
-    updateAddressList(endpointList, lbConfig, options) {
+    updateAddressList(endpointList, lbConfig, options, resolutionNote) {
         if (!(lbConfig instanceof OutlierDetectionLoadBalancingConfig)) {
-            return;
+            return false;
         }
         trace('Received update with config: ' + JSON.stringify(lbConfig.toJsonObject(), undefined, 2));
-        for (const endpoint of endpointList) {
-            if (!this.entryMap.has(endpoint)) {
-                trace('Adding map entry for ' + (0, subchannel_address_1.endpointToString)(endpoint));
-                this.entryMap.set(endpoint, {
-                    counter: new CallCounter(),
-                    currentEjectionTimestamp: null,
-                    ejectionTimeMultiplier: 0,
-                    subchannelWrappers: [],
-                });
+        if (endpointList.ok) {
+            for (const endpoint of endpointList.value) {
+                if (!this.entryMap.has(endpoint)) {
+                    trace('Adding map entry for ' + (0, subchannel_address_1.endpointToString)(endpoint));
+                    this.entryMap.set(endpoint, {
+                        counter: new CallCounter(),
+                        currentEjectionTimestamp: null,
+                        ejectionTimeMultiplier: 0,
+                        subchannelWrappers: [],
+                    });
+                }
             }
+            this.entryMap.deleteMissing(endpointList.value);
         }
-        this.entryMap.deleteMissing(endpointList);
         const childPolicy = lbConfig.getChildPolicy();
-        this.childBalancer.updateAddressList(endpointList, childPolicy, options);
+        this.childBalancer.updateAddressList(endpointList, childPolicy, options, resolutionNote);
         if (lbConfig.getSuccessRateEjectionConfig() ||
             lbConfig.getFailurePercentageEjectionConfig()) {
             if (this.timerStartTime) {
@@ -9008,6 +9085,7 @@ class OutlierDetectionLoadBalancer {
             }
         }
         this.latestConfig = lbConfig;
+        return true;
     }
     exitIdle() {
         this.childBalancer.exitIdle();
@@ -9066,6 +9144,7 @@ const logging = __nccwpck_require__(8536);
 const constants_1 = __nccwpck_require__(68288);
 const subchannel_address_2 = __nccwpck_require__(97021);
 const net_1 = __nccwpck_require__(69278);
+const call_interface_1 = __nccwpck_require__(61803);
 const TRACER_NAME = 'pick_first';
 function trace(text) {
     logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
@@ -9223,6 +9302,7 @@ class PickFirstLoadBalancer {
         this.lastError = null;
         this.latestAddressList = null;
         this.latestOptions = {};
+        this.latestResolutionNote = '';
         this.connectionDelayTimeout = setTimeout(() => { }, 0);
         clearTimeout(this.connectionDelayTimeout);
     }
@@ -9246,7 +9326,7 @@ class PickFirstLoadBalancer {
             }
         }
         else if (((_a = this.latestAddressList) === null || _a === void 0 ? void 0 : _a.length) === 0) {
-            const errorMessage = `No connection established. Last error: ${this.lastError}`;
+            const errorMessage = `No connection established. Last error: ${this.lastError}. Resolution note: ${this.latestResolutionNote}`;
             this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({
                 details: errorMessage,
             }), errorMessage);
@@ -9256,7 +9336,7 @@ class PickFirstLoadBalancer {
         }
         else {
             if (this.stickyTransientFailureMode) {
-                const errorMessage = `No connection established. Last error: ${this.lastError}`;
+                const errorMessage = `No connection established. Last error: ${this.lastError}. Resolution note: ${this.latestResolutionNote}`;
                 this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({
                     details: errorMessage,
                 }), errorMessage);
@@ -9437,10 +9517,17 @@ class PickFirstLoadBalancer {
         this.startNextSubchannelConnecting(0);
         this.calculateAndReportNewState();
     }
-    updateAddressList(endpointList, lbConfig, options) {
+    updateAddressList(maybeEndpointList, lbConfig, options, resolutionNote) {
         if (!(lbConfig instanceof PickFirstLoadBalancingConfig)) {
-            return;
+            return false;
         }
+        if (!maybeEndpointList.ok) {
+            if (this.children.length === 0 && this.currentPick === null) {
+                this.channelControlHelper.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker(maybeEndpointList.error), maybeEndpointList.error.details);
+            }
+            return true;
+        }
+        let endpointList = maybeEndpointList.value;
         this.reportHealthStatus = options[REPORT_HEALTH_STATUS_OPTION_NAME];
         /* Previously, an update would be discarded if it was identical to the
          * previous update, to minimize churn. Now the DNS resolver is
@@ -9450,13 +9537,18 @@ class PickFirstLoadBalancer {
         }
         const rawAddressList = [].concat(...endpointList.map(endpoint => endpoint.addresses));
         trace('updateAddressList([' + rawAddressList.map(address => (0, subchannel_address_1.subchannelAddressToString)(address)) + '])');
-        if (rawAddressList.length === 0) {
-            this.lastError = 'No addresses resolved';
-        }
         const addressList = interleaveAddressFamilies(rawAddressList);
         this.latestAddressList = addressList;
         this.latestOptions = options;
         this.connectToAddressList(addressList, options);
+        this.latestResolutionNote = resolutionNote;
+        if (rawAddressList.length > 0) {
+            return true;
+        }
+        else {
+            this.lastError = 'No addresses resolved';
+            return false;
+        }
     }
     exitIdle() {
         if (this.currentState === connectivity_state_1.ConnectivityState.IDLE &&
@@ -9484,9 +9576,10 @@ const LEAF_CONFIG = new PickFirstLoadBalancingConfig(false);
  * that more closely reflects how it will be used as a leaf balancer.
  */
 class LeafLoadBalancer {
-    constructor(endpoint, channelControlHelper, options) {
+    constructor(endpoint, channelControlHelper, options, resolutionNote) {
         this.endpoint = endpoint;
         this.options = options;
+        this.resolutionNote = resolutionNote;
         this.latestState = connectivity_state_1.ConnectivityState.IDLE;
         const childChannelControlHelper = (0, load_balancer_1.createChildChannelControlHelper)(channelControlHelper, {
             updateState: (connectivityState, picker, errorMessage) => {
@@ -9499,7 +9592,7 @@ class LeafLoadBalancer {
         this.latestPicker = new picker_1.QueuePicker(this.pickFirstBalancer);
     }
     startConnecting() {
-        this.pickFirstBalancer.updateAddressList([this.endpoint], LEAF_CONFIG, Object.assign(Object.assign({}, this.options), { [REPORT_HEALTH_STATUS_OPTION_NAME]: true }));
+        this.pickFirstBalancer.updateAddressList((0, call_interface_1.statusOrFromValue)([this.endpoint]), LEAF_CONFIG, Object.assign(Object.assign({}, this.options), { [REPORT_HEALTH_STATUS_OPTION_NAME]: true }), this.resolutionNote);
     }
     /**
      * Update the endpoint associated with this LeafLoadBalancer to a new
@@ -9609,6 +9702,9 @@ class RoundRobinPicker {
         return this.children[this.nextIndex].endpoint;
     }
 }
+function rotateArray(list, startIndex) {
+    return [...list.slice(startIndex), ...list.slice(0, startIndex)];
+}
 class RoundRobinLoadBalancer {
     constructor(channelControlHelper) {
         this.channelControlHelper = channelControlHelper;
@@ -9695,17 +9791,34 @@ class RoundRobinLoadBalancer {
         for (const child of this.children) {
             child.destroy();
         }
+        this.children = [];
     }
-    updateAddressList(endpointList, lbConfig, options) {
+    updateAddressList(maybeEndpointList, lbConfig, options, resolutionNote) {
+        if (!(lbConfig instanceof RoundRobinLoadBalancingConfig)) {
+            return false;
+        }
+        if (!maybeEndpointList.ok) {
+            if (this.children.length === 0) {
+                this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker(maybeEndpointList.error), maybeEndpointList.error.details);
+            }
+            return true;
+        }
+        const startIndex = (Math.random() * maybeEndpointList.value.length) | 0;
+        const endpointList = rotateArray(maybeEndpointList.value, startIndex);
         this.resetSubchannelList();
+        if (endpointList.length === 0) {
+            const errorMessage = `No addresses resolved. Resolution note: ${resolutionNote}`;
+            this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({ details: errorMessage }), errorMessage);
+        }
         trace('Connect to endpoint list ' + endpointList.map(subchannel_address_1.endpointToString));
         this.updatesPaused = true;
-        this.children = endpointList.map(endpoint => new load_balancer_pick_first_1.LeafLoadBalancer(endpoint, this.childChannelControlHelper, options));
+        this.children = endpointList.map(endpoint => new load_balancer_pick_first_1.LeafLoadBalancer(endpoint, this.childChannelControlHelper, options, resolutionNote));
         for (const child of this.children) {
             child.startConnecting();
         }
         this.updatesPaused = false;
         this.calculateAndUpdateState();
+        return true;
     }
     exitIdle() {
         /* The round_robin LB policy is only in the IDLE state if it has no
@@ -9727,6 +9840,405 @@ function setup() {
     (0, load_balancer_1.registerLoadBalancerType)(TYPE_NAME, RoundRobinLoadBalancer, RoundRobinLoadBalancingConfig);
 }
 //# sourceMappingURL=load-balancer-round-robin.js.map
+
+/***/ }),
+
+/***/ 47616:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+/*
+ * Copyright 2025 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.WeightedRoundRobinLoadBalancingConfig = void 0;
+exports.setup = setup;
+const connectivity_state_1 = __nccwpck_require__(60778);
+const constants_1 = __nccwpck_require__(68288);
+const duration_1 = __nccwpck_require__(63929);
+const load_balancer_1 = __nccwpck_require__(7000);
+const load_balancer_pick_first_1 = __nccwpck_require__(78639);
+const logging = __nccwpck_require__(8536);
+const orca_1 = __nccwpck_require__(82124);
+const picker_1 = __nccwpck_require__(71663);
+const priority_queue_1 = __nccwpck_require__(58291);
+const subchannel_address_1 = __nccwpck_require__(97021);
+const TRACER_NAME = 'weighted_round_robin';
+function trace(text) {
+    logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
+}
+const TYPE_NAME = 'weighted_round_robin';
+const DEFAULT_OOB_REPORTING_PERIOD_MS = 10000;
+const DEFAULT_BLACKOUT_PERIOD_MS = 10000;
+const DEFAULT_WEIGHT_EXPIRATION_PERIOD_MS = 3 * 60000;
+const DEFAULT_WEIGHT_UPDATE_PERIOD_MS = 1000;
+const DEFAULT_ERROR_UTILIZATION_PENALTY = 1;
+function validateFieldType(obj, fieldName, expectedType) {
+    if (fieldName in obj &&
+        obj[fieldName] !== undefined &&
+        typeof obj[fieldName] !== expectedType) {
+        throw new Error(`weighted round robin config ${fieldName} parse error: expected ${expectedType}, got ${typeof obj[fieldName]}`);
+    }
+}
+function parseDurationField(obj, fieldName) {
+    if (fieldName in obj && obj[fieldName] !== undefined && obj[fieldName] !== null) {
+        let durationObject;
+        if ((0, duration_1.isDuration)(obj[fieldName])) {
+            durationObject = obj[fieldName];
+        }
+        else if ((0, duration_1.isDurationMessage)(obj[fieldName])) {
+            durationObject = (0, duration_1.durationMessageToDuration)(obj[fieldName]);
+        }
+        else if (typeof obj[fieldName] === 'string') {
+            const parsedDuration = (0, duration_1.parseDuration)(obj[fieldName]);
+            if (!parsedDuration) {
+                throw new Error(`weighted round robin config ${fieldName}: failed to parse duration string ${obj[fieldName]}`);
+            }
+            durationObject = parsedDuration;
+        }
+        else {
+            throw new Error(`weighted round robin config ${fieldName}: expected duration, got ${typeof obj[fieldName]}`);
+        }
+        return (0, duration_1.durationToMs)(durationObject);
+    }
+    return null;
+}
+class WeightedRoundRobinLoadBalancingConfig {
+    constructor(enableOobLoadReport, oobLoadReportingPeriodMs, blackoutPeriodMs, weightExpirationPeriodMs, weightUpdatePeriodMs, errorUtilizationPenalty) {
+        this.enableOobLoadReport = enableOobLoadReport !== null && enableOobLoadReport !== void 0 ? enableOobLoadReport : false;
+        this.oobLoadReportingPeriodMs = oobLoadReportingPeriodMs !== null && oobLoadReportingPeriodMs !== void 0 ? oobLoadReportingPeriodMs : DEFAULT_OOB_REPORTING_PERIOD_MS;
+        this.blackoutPeriodMs = blackoutPeriodMs !== null && blackoutPeriodMs !== void 0 ? blackoutPeriodMs : DEFAULT_BLACKOUT_PERIOD_MS;
+        this.weightExpirationPeriodMs = weightExpirationPeriodMs !== null && weightExpirationPeriodMs !== void 0 ? weightExpirationPeriodMs : DEFAULT_WEIGHT_EXPIRATION_PERIOD_MS;
+        this.weightUpdatePeriodMs = Math.max(weightUpdatePeriodMs !== null && weightUpdatePeriodMs !== void 0 ? weightUpdatePeriodMs : DEFAULT_WEIGHT_UPDATE_PERIOD_MS, 100);
+        this.errorUtilizationPenalty = errorUtilizationPenalty !== null && errorUtilizationPenalty !== void 0 ? errorUtilizationPenalty : DEFAULT_ERROR_UTILIZATION_PENALTY;
+    }
+    getLoadBalancerName() {
+        return TYPE_NAME;
+    }
+    toJsonObject() {
+        return {
+            enable_oob_load_report: this.enableOobLoadReport,
+            oob_load_reporting_period: (0, duration_1.durationToString)((0, duration_1.msToDuration)(this.oobLoadReportingPeriodMs)),
+            blackout_period: (0, duration_1.durationToString)((0, duration_1.msToDuration)(this.blackoutPeriodMs)),
+            weight_expiration_period: (0, duration_1.durationToString)((0, duration_1.msToDuration)(this.weightExpirationPeriodMs)),
+            weight_update_period: (0, duration_1.durationToString)((0, duration_1.msToDuration)(this.weightUpdatePeriodMs)),
+            error_utilization_penalty: this.errorUtilizationPenalty
+        };
+    }
+    static createFromJson(obj) {
+        validateFieldType(obj, 'enable_oob_load_report', 'boolean');
+        validateFieldType(obj, 'error_utilization_penalty', 'number');
+        if (obj.error_utilization_penalty < 0) {
+            throw new Error('weighted round robin config error_utilization_penalty < 0');
+        }
+        return new WeightedRoundRobinLoadBalancingConfig(obj.enable_oob_load_report, parseDurationField(obj, 'oob_load_reporting_period'), parseDurationField(obj, 'blackout_period'), parseDurationField(obj, 'weight_expiration_period'), parseDurationField(obj, 'weight_update_period'), obj.error_utilization_penalty);
+    }
+    getEnableOobLoadReport() {
+        return this.enableOobLoadReport;
+    }
+    getOobLoadReportingPeriodMs() {
+        return this.oobLoadReportingPeriodMs;
+    }
+    getBlackoutPeriodMs() {
+        return this.blackoutPeriodMs;
+    }
+    getWeightExpirationPeriodMs() {
+        return this.weightExpirationPeriodMs;
+    }
+    getWeightUpdatePeriodMs() {
+        return this.weightUpdatePeriodMs;
+    }
+    getErrorUtilizationPenalty() {
+        return this.errorUtilizationPenalty;
+    }
+}
+exports.WeightedRoundRobinLoadBalancingConfig = WeightedRoundRobinLoadBalancingConfig;
+class WeightedRoundRobinPicker {
+    constructor(children, metricsHandler) {
+        this.metricsHandler = metricsHandler;
+        this.queue = new priority_queue_1.PriorityQueue((a, b) => a.deadline < b.deadline);
+        const positiveWeight = children.filter(picker => picker.weight > 0);
+        let averageWeight;
+        if (positiveWeight.length < 2) {
+            averageWeight = 1;
+        }
+        else {
+            let weightSum = 0;
+            for (const { weight } of positiveWeight) {
+                weightSum += weight;
+            }
+            averageWeight = weightSum / positiveWeight.length;
+        }
+        for (const child of children) {
+            const period = child.weight > 0 ? 1 / child.weight : averageWeight;
+            this.queue.push({
+                endpointName: child.endpointName,
+                picker: child.picker,
+                period: period,
+                deadline: Math.random() * period
+            });
+        }
+    }
+    pick(pickArgs) {
+        const entry = this.queue.pop();
+        this.queue.push(Object.assign(Object.assign({}, entry), { deadline: entry.deadline + entry.period }));
+        const childPick = entry.picker.pick(pickArgs);
+        if (childPick.pickResultType === picker_1.PickResultType.COMPLETE) {
+            if (this.metricsHandler) {
+                return Object.assign(Object.assign({}, childPick), { onCallEnded: (0, orca_1.createMetricsReader)(loadReport => this.metricsHandler(loadReport, entry.endpointName), childPick.onCallEnded) });
+            }
+            else {
+                const subchannelWrapper = childPick.subchannel;
+                return Object.assign(Object.assign({}, childPick), { subchannel: subchannelWrapper.getWrappedSubchannel() });
+            }
+        }
+        else {
+            return childPick;
+        }
+    }
+}
+class WeightedRoundRobinLoadBalancer {
+    constructor(channelControlHelper) {
+        this.channelControlHelper = channelControlHelper;
+        this.latestConfig = null;
+        this.children = new Map();
+        this.currentState = connectivity_state_1.ConnectivityState.IDLE;
+        this.updatesPaused = false;
+        this.lastError = null;
+        this.weightUpdateTimer = null;
+    }
+    countChildrenWithState(state) {
+        let count = 0;
+        for (const entry of this.children.values()) {
+            if (entry.child.getConnectivityState() === state) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+    updateWeight(entry, loadReport) {
+        var _a, _b;
+        const qps = loadReport.rps_fractional;
+        let utilization = loadReport.application_utilization;
+        if (utilization > 0 && qps > 0) {
+            utilization += (loadReport.eps / qps) * ((_b = (_a = this.latestConfig) === null || _a === void 0 ? void 0 : _a.getErrorUtilizationPenalty()) !== null && _b !== void 0 ? _b : 0);
+        }
+        const newWeight = utilization === 0 ? 0 : qps / utilization;
+        if (newWeight === 0) {
+            return;
+        }
+        const now = new Date();
+        if (entry.nonEmptySince === null) {
+            entry.nonEmptySince = now;
+        }
+        entry.lastUpdated = now;
+        entry.weight = newWeight;
+    }
+    getWeight(entry) {
+        if (!this.latestConfig) {
+            return 0;
+        }
+        const now = new Date().getTime();
+        if (now - entry.lastUpdated.getTime() >= this.latestConfig.getWeightExpirationPeriodMs()) {
+            entry.nonEmptySince = null;
+            return 0;
+        }
+        const blackoutPeriod = this.latestConfig.getBlackoutPeriodMs();
+        if (blackoutPeriod > 0 && (entry.nonEmptySince === null || now - entry.nonEmptySince.getTime() < blackoutPeriod)) {
+            return 0;
+        }
+        return entry.weight;
+    }
+    calculateAndUpdateState() {
+        if (this.updatesPaused || !this.latestConfig) {
+            return;
+        }
+        if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.READY) > 0) {
+            const weightedPickers = [];
+            for (const [endpoint, entry] of this.children) {
+                if (entry.child.getConnectivityState() !== connectivity_state_1.ConnectivityState.READY) {
+                    continue;
+                }
+                weightedPickers.push({
+                    endpointName: endpoint,
+                    picker: entry.child.getPicker(),
+                    weight: this.getWeight(entry)
+                });
+            }
+            trace('Created picker with weights: ' + weightedPickers.map(entry => entry.endpointName + ':' + entry.weight).join(','));
+            let metricsHandler;
+            if (!this.latestConfig.getEnableOobLoadReport()) {
+                metricsHandler = (loadReport, endpointName) => {
+                    const childEntry = this.children.get(endpointName);
+                    if (childEntry) {
+                        this.updateWeight(childEntry, loadReport);
+                    }
+                };
+            }
+            else {
+                metricsHandler = null;
+            }
+            this.updateState(connectivity_state_1.ConnectivityState.READY, new WeightedRoundRobinPicker(weightedPickers, metricsHandler), null);
+        }
+        else if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.CONNECTING) > 0) {
+            this.updateState(connectivity_state_1.ConnectivityState.CONNECTING, new picker_1.QueuePicker(this), null);
+        }
+        else if (this.countChildrenWithState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE) > 0) {
+            const errorMessage = `weighted_round_robin: No connection established. Last error: ${this.lastError}`;
+            this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({
+                details: errorMessage,
+            }), errorMessage);
+        }
+        else {
+            this.updateState(connectivity_state_1.ConnectivityState.IDLE, new picker_1.QueuePicker(this), null);
+        }
+        /* round_robin should keep all children connected, this is how we do that.
+          * We can't do this more efficiently in the individual child's updateState
+          * callback because that doesn't have a reference to which child the state
+          * change is associated with. */
+        for (const { child } of this.children.values()) {
+            if (child.getConnectivityState() === connectivity_state_1.ConnectivityState.IDLE) {
+                child.exitIdle();
+            }
+        }
+    }
+    updateState(newState, picker, errorMessage) {
+        trace(connectivity_state_1.ConnectivityState[this.currentState] +
+            ' -> ' +
+            connectivity_state_1.ConnectivityState[newState]);
+        this.currentState = newState;
+        this.channelControlHelper.updateState(newState, picker, errorMessage);
+    }
+    updateAddressList(maybeEndpointList, lbConfig, options, resolutionNote) {
+        var _a, _b;
+        if (!(lbConfig instanceof WeightedRoundRobinLoadBalancingConfig)) {
+            return false;
+        }
+        if (!maybeEndpointList.ok) {
+            if (this.children.size === 0) {
+                this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker(maybeEndpointList.error), maybeEndpointList.error.details);
+            }
+            return true;
+        }
+        if (maybeEndpointList.value.length === 0) {
+            const errorMessage = `No addresses resolved. Resolution note: ${resolutionNote}`;
+            this.updateState(connectivity_state_1.ConnectivityState.TRANSIENT_FAILURE, new picker_1.UnavailablePicker({ details: errorMessage }), errorMessage);
+            return false;
+        }
+        trace('Connect to endpoint list ' + maybeEndpointList.value.map(subchannel_address_1.endpointToString));
+        const now = new Date();
+        const seenEndpointNames = new Set();
+        this.updatesPaused = true;
+        this.latestConfig = lbConfig;
+        for (const endpoint of maybeEndpointList.value) {
+            const name = (0, subchannel_address_1.endpointToString)(endpoint);
+            seenEndpointNames.add(name);
+            let entry = this.children.get(name);
+            if (!entry) {
+                entry = {
+                    child: new load_balancer_pick_first_1.LeafLoadBalancer(endpoint, (0, load_balancer_1.createChildChannelControlHelper)(this.channelControlHelper, {
+                        updateState: (connectivityState, picker, errorMessage) => {
+                            /* Ensure that name resolution is requested again after active
+                              * connections are dropped. This is more aggressive than necessary to
+                              * accomplish that, so we are counting on resolvers to have
+                              * reasonable rate limits. */
+                            if (this.currentState === connectivity_state_1.ConnectivityState.READY && connectivityState !== connectivity_state_1.ConnectivityState.READY) {
+                                this.channelControlHelper.requestReresolution();
+                            }
+                            if (connectivityState === connectivity_state_1.ConnectivityState.READY) {
+                                entry.nonEmptySince = null;
+                            }
+                            if (errorMessage) {
+                                this.lastError = errorMessage;
+                            }
+                            this.calculateAndUpdateState();
+                        },
+                        createSubchannel: (subchannelAddress, subchannelArgs) => {
+                            const subchannel = this.channelControlHelper.createSubchannel(subchannelAddress, subchannelArgs);
+                            if (entry === null || entry === void 0 ? void 0 : entry.oobMetricsListener) {
+                                return new orca_1.OrcaOobMetricsSubchannelWrapper(subchannel, entry.oobMetricsListener, this.latestConfig.getOobLoadReportingPeriodMs());
+                            }
+                            else {
+                                return subchannel;
+                            }
+                        }
+                    }), options, resolutionNote),
+                    lastUpdated: now,
+                    nonEmptySince: null,
+                    weight: 0,
+                    oobMetricsListener: null
+                };
+                this.children.set(name, entry);
+            }
+            if (lbConfig.getEnableOobLoadReport()) {
+                entry.oobMetricsListener = loadReport => {
+                    this.updateWeight(entry, loadReport);
+                };
+            }
+            else {
+                entry.oobMetricsListener = null;
+            }
+        }
+        for (const [endpointName, entry] of this.children) {
+            if (seenEndpointNames.has(endpointName)) {
+                entry.child.startConnecting();
+            }
+            else {
+                entry.child.destroy();
+                this.children.delete(endpointName);
+            }
+        }
+        this.updatesPaused = false;
+        this.calculateAndUpdateState();
+        if (this.weightUpdateTimer) {
+            clearInterval(this.weightUpdateTimer);
+        }
+        this.weightUpdateTimer = (_b = (_a = setInterval(() => {
+            if (this.currentState === connectivity_state_1.ConnectivityState.READY) {
+                this.calculateAndUpdateState();
+            }
+        }, lbConfig.getWeightUpdatePeriodMs())).unref) === null || _b === void 0 ? void 0 : _b.call(_a);
+        return true;
+    }
+    exitIdle() {
+        /* The weighted_round_robin LB policy is only in the IDLE state if it has
+         * no addresses to try to connect to and it has no picked subchannel.
+         * In that case, there is no meaningful action that can be taken here. */
+    }
+    resetBackoff() {
+        // This LB policy has no backoff to reset
+    }
+    destroy() {
+        for (const entry of this.children.values()) {
+            entry.child.destroy();
+        }
+        this.children.clear();
+        if (this.weightUpdateTimer) {
+            clearInterval(this.weightUpdateTimer);
+        }
+    }
+    getTypeName() {
+        return TYPE_NAME;
+    }
+}
+function setup() {
+    (0, load_balancer_1.registerLoadBalancerType)(TYPE_NAME, WeightedRoundRobinLoadBalancer, WeightedRoundRobinLoadBalancingConfig);
+}
+//# sourceMappingURL=load-balancer-weighted-round-robin.js.map
 
 /***/ }),
 
@@ -9955,7 +10467,7 @@ class LoadBalancingCall {
                 this.startTime.toISOString());
             const finalStatus = Object.assign(Object.assign({}, status), { progress });
             (_a = this.listener) === null || _a === void 0 ? void 0 : _a.onReceiveStatus(finalStatus);
-            (_b = this.onCallEnded) === null || _b === void 0 ? void 0 : _b.call(this, finalStatus.code);
+            (_b = this.onCallEnded) === null || _b === void 0 ? void 0 : _b.call(this, finalStatus.code, finalStatus.details, finalStatus.metadata);
         }
     }
     doPick() {
@@ -10147,6 +10659,14 @@ class LoadBalancingCall {
     }
     getCallNumber() {
         return this.callNumber;
+    }
+    getAuthContext() {
+        if (this.child) {
+            return this.child.getAuthContext();
+        }
+        else {
+            return null;
+        }
     }
 }
 exports.LoadBalancingCall = LoadBalancingCall;
@@ -10459,7 +10979,7 @@ exports.Metadata = void 0;
 const logging_1 = __nccwpck_require__(8536);
 const constants_1 = __nccwpck_require__(68288);
 const error_1 = __nccwpck_require__(98219);
-const LEGAL_KEY_REGEX = /^[0-9a-z_.-]+$/;
+const LEGAL_KEY_REGEX = /^[:0-9a-z_.-]+$/;
 const LEGAL_NON_BINARY_VALUE_REGEX = /^[ -~]*$/;
 function isLegalKey(key) {
     return LEGAL_KEY_REGEX.test(key);
@@ -10502,6 +11022,7 @@ function validate(key, value) {
 class Metadata {
     constructor(options = {}) {
         this.internalRepr = new Map();
+        this.opaqueData = new Map();
         this.options = options;
     }
     /**
@@ -10614,6 +11135,9 @@ class Metadata {
         // NOTE: Node <8.9 formats http2 headers incorrectly.
         const result = {};
         for (const [key, values] of this.internalRepr) {
+            if (key.startsWith(':')) {
+                continue;
+            }
             // We assume that the user's interaction with this object is limited to
             // through its public API (i.e. keys and values are already validated).
             result[key] = values.map(bufToString);
@@ -10630,6 +11154,25 @@ class Metadata {
             result[key] = values;
         }
         return result;
+    }
+    /**
+     * Attach additional data of any type to the metadata object, which will not
+     * be included when sending headers. The data can later be retrieved with
+     * `getOpaque`. Keys with the prefix `grpc` are reserved for use by this
+     * library.
+     * @param key
+     * @param value
+     */
+    setOpaque(key, value) {
+        this.opaqueData.set(key, value);
+    }
+    /**
+     * Retrieve data previously added with `setOpaque`.
+     * @param key
+     * @returns
+     */
+    getOpaque(key) {
+        return this.opaqueData.get(key);
     }
     /**
      * Returns a new Metadata object based fields in a given IncomingHttpHeaders
@@ -10686,6 +11229,335 @@ const bufToString = (val) => {
     return Buffer.isBuffer(val) ? val.toString('base64') : val;
 };
 //# sourceMappingURL=metadata.js.map
+
+/***/ }),
+
+/***/ 82124:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+/*
+ * Copyright 2025 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OrcaOobMetricsSubchannelWrapper = exports.GRPC_METRICS_HEADER = exports.ServerMetricRecorder = exports.PerRequestMetricRecorder = void 0;
+exports.createOrcaClient = createOrcaClient;
+exports.createMetricsReader = createMetricsReader;
+const make_client_1 = __nccwpck_require__(76983);
+const duration_1 = __nccwpck_require__(63929);
+const channel_credentials_1 = __nccwpck_require__(32257);
+const subchannel_interface_1 = __nccwpck_require__(70098);
+const constants_1 = __nccwpck_require__(68288);
+const backoff_timeout_1 = __nccwpck_require__(14643);
+const connectivity_state_1 = __nccwpck_require__(60778);
+const loadedOrcaProto = null;
+function loadOrcaProto() {
+    if (loadedOrcaProto) {
+        return loadedOrcaProto;
+    }
+    /* The purpose of this complexity is to avoid loading @grpc/proto-loader at
+     * runtime for users who will not use/enable ORCA. */
+    const loaderLoadSync = (__nccwpck_require__(76081)/* .loadSync */ .Yi);
+    const loadedProto = loaderLoadSync('xds/service/orca/v3/orca.proto', {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true,
+        includeDirs: [
+            __nccwpck_require__.ab + "xds",
+            __nccwpck_require__.ab + "protoc-gen-validate"
+        ],
+    });
+    return (0, make_client_1.loadPackageDefinition)(loadedProto);
+}
+/**
+ * ORCA metrics recorder for a single request
+ */
+class PerRequestMetricRecorder {
+    constructor() {
+        this.message = {};
+    }
+    /**
+     * Records a request cost metric measurement for the call.
+     * @param name
+     * @param value
+     */
+    recordRequestCostMetric(name, value) {
+        if (!this.message.request_cost) {
+            this.message.request_cost = {};
+        }
+        this.message.request_cost[name] = value;
+    }
+    /**
+     * Records a request cost metric measurement for the call.
+     * @param name
+     * @param value
+     */
+    recordUtilizationMetric(name, value) {
+        if (!this.message.utilization) {
+            this.message.utilization = {};
+        }
+        this.message.utilization[name] = value;
+    }
+    /**
+     * Records an opaque named metric measurement for the call.
+     * @param name
+     * @param value
+     */
+    recordNamedMetric(name, value) {
+        if (!this.message.named_metrics) {
+            this.message.named_metrics = {};
+        }
+        this.message.named_metrics[name] = value;
+    }
+    /**
+     * Records the CPU utilization metric measurement for the call.
+     * @param value
+     */
+    recordCPUUtilizationMetric(value) {
+        this.message.cpu_utilization = value;
+    }
+    /**
+     * Records the memory utilization metric measurement for the call.
+     * @param value
+     */
+    recordMemoryUtilizationMetric(value) {
+        this.message.mem_utilization = value;
+    }
+    /**
+     * Records the memory utilization metric measurement for the call.
+     * @param value
+     */
+    recordApplicationUtilizationMetric(value) {
+        this.message.application_utilization = value;
+    }
+    /**
+     * Records the queries per second measurement.
+     * @param value
+     */
+    recordQpsMetric(value) {
+        this.message.rps_fractional = value;
+    }
+    /**
+     * Records the errors per second measurement.
+     * @param value
+     */
+    recordEpsMetric(value) {
+        this.message.eps = value;
+    }
+    serialize() {
+        const orcaProto = loadOrcaProto();
+        return orcaProto.xds.data.orca.v3.OrcaLoadReport.serialize(this.message);
+    }
+}
+exports.PerRequestMetricRecorder = PerRequestMetricRecorder;
+const DEFAULT_REPORT_INTERVAL_MS = 30000;
+class ServerMetricRecorder {
+    constructor() {
+        this.message = {};
+        this.serviceImplementation = {
+            StreamCoreMetrics: call => {
+                const reportInterval = call.request.report_interval ?
+                    (0, duration_1.durationToMs)((0, duration_1.durationMessageToDuration)(call.request.report_interval)) :
+                    DEFAULT_REPORT_INTERVAL_MS;
+                const reportTimer = setInterval(() => {
+                    call.write(this.message);
+                }, reportInterval);
+                call.on('cancelled', () => {
+                    clearInterval(reportTimer);
+                });
+            }
+        };
+    }
+    putUtilizationMetric(name, value) {
+        if (!this.message.utilization) {
+            this.message.utilization = {};
+        }
+        this.message.utilization[name] = value;
+    }
+    setAllUtilizationMetrics(metrics) {
+        this.message.utilization = Object.assign({}, metrics);
+    }
+    deleteUtilizationMetric(name) {
+        var _a;
+        (_a = this.message.utilization) === null || _a === void 0 ? true : delete _a[name];
+    }
+    setCpuUtilizationMetric(value) {
+        this.message.cpu_utilization = value;
+    }
+    deleteCpuUtilizationMetric() {
+        delete this.message.cpu_utilization;
+    }
+    setApplicationUtilizationMetric(value) {
+        this.message.application_utilization = value;
+    }
+    deleteApplicationUtilizationMetric() {
+        delete this.message.application_utilization;
+    }
+    setQpsMetric(value) {
+        this.message.rps_fractional = value;
+    }
+    deleteQpsMetric() {
+        delete this.message.rps_fractional;
+    }
+    setEpsMetric(value) {
+        this.message.eps = value;
+    }
+    deleteEpsMetric() {
+        delete this.message.eps;
+    }
+    addToServer(server) {
+        const serviceDefinition = loadOrcaProto().xds.service.orca.v3.OpenRcaService.service;
+        server.addService(serviceDefinition, this.serviceImplementation);
+    }
+}
+exports.ServerMetricRecorder = ServerMetricRecorder;
+function createOrcaClient(channel) {
+    const ClientClass = loadOrcaProto().xds.service.orca.v3.OpenRcaService;
+    return new ClientClass('unused', channel_credentials_1.ChannelCredentials.createInsecure(), { channelOverride: channel });
+}
+exports.GRPC_METRICS_HEADER = 'endpoint-load-metrics-bin';
+const PARSED_LOAD_REPORT_KEY = 'grpc_orca_load_report';
+/**
+ * Create an onCallEnded callback for use in a picker.
+ * @param listener The listener to handle metrics, whenever they are provided.
+ * @param previousOnCallEnded The previous onCallEnded callback to propagate
+ * to, if applicable.
+ * @returns
+ */
+function createMetricsReader(listener, previousOnCallEnded) {
+    return (code, details, metadata) => {
+        let parsedLoadReport = metadata.getOpaque(PARSED_LOAD_REPORT_KEY);
+        if (parsedLoadReport) {
+            listener(parsedLoadReport);
+        }
+        else {
+            const serializedLoadReport = metadata.get(exports.GRPC_METRICS_HEADER);
+            if (serializedLoadReport.length > 0) {
+                const orcaProto = loadOrcaProto();
+                parsedLoadReport = orcaProto.xds.data.orca.v3.OrcaLoadReport.deserialize(serializedLoadReport[0]);
+                listener(parsedLoadReport);
+                metadata.setOpaque(PARSED_LOAD_REPORT_KEY, parsedLoadReport);
+            }
+        }
+        if (previousOnCallEnded) {
+            previousOnCallEnded(code, details, metadata);
+        }
+    };
+}
+const DATA_PRODUCER_KEY = 'orca_oob_metrics';
+class OobMetricsDataWatcher {
+    constructor(metricsListener, intervalMs) {
+        this.metricsListener = metricsListener;
+        this.intervalMs = intervalMs;
+        this.dataProducer = null;
+    }
+    setSubchannel(subchannel) {
+        const producer = subchannel.getOrCreateDataProducer(DATA_PRODUCER_KEY, createOobMetricsDataProducer);
+        this.dataProducer = producer;
+        producer.addDataWatcher(this);
+    }
+    destroy() {
+        var _a;
+        (_a = this.dataProducer) === null || _a === void 0 ? void 0 : _a.removeDataWatcher(this);
+    }
+    getInterval() {
+        return this.intervalMs;
+    }
+    onMetricsUpdate(metrics) {
+        this.metricsListener(metrics);
+    }
+}
+class OobMetricsDataProducer {
+    constructor(subchannel) {
+        this.subchannel = subchannel;
+        this.dataWatchers = new Set();
+        this.orcaSupported = true;
+        this.metricsCall = null;
+        this.currentInterval = Infinity;
+        this.backoffTimer = new backoff_timeout_1.BackoffTimeout(() => this.updateMetricsSubscription());
+        this.subchannelStateListener = () => this.updateMetricsSubscription();
+        const channel = subchannel.getChannel();
+        this.client = createOrcaClient(channel);
+        subchannel.addConnectivityStateListener(this.subchannelStateListener);
+    }
+    addDataWatcher(dataWatcher) {
+        this.dataWatchers.add(dataWatcher);
+        this.updateMetricsSubscription();
+    }
+    removeDataWatcher(dataWatcher) {
+        var _a;
+        this.dataWatchers.delete(dataWatcher);
+        if (this.dataWatchers.size === 0) {
+            this.subchannel.removeDataProducer(DATA_PRODUCER_KEY);
+            (_a = this.metricsCall) === null || _a === void 0 ? void 0 : _a.cancel();
+            this.metricsCall = null;
+            this.client.close();
+            this.subchannel.removeConnectivityStateListener(this.subchannelStateListener);
+        }
+        else {
+            this.updateMetricsSubscription();
+        }
+    }
+    updateMetricsSubscription() {
+        var _a;
+        if (this.dataWatchers.size === 0 || !this.orcaSupported || this.subchannel.getConnectivityState() !== connectivity_state_1.ConnectivityState.READY) {
+            return;
+        }
+        const newInterval = Math.min(...Array.from(this.dataWatchers).map(watcher => watcher.getInterval()));
+        if (!this.metricsCall || newInterval !== this.currentInterval) {
+            (_a = this.metricsCall) === null || _a === void 0 ? void 0 : _a.cancel();
+            this.currentInterval = newInterval;
+            const metricsCall = this.client.streamCoreMetrics({ report_interval: (0, duration_1.msToDuration)(newInterval) });
+            this.metricsCall = metricsCall;
+            metricsCall.on('data', (report) => {
+                this.dataWatchers.forEach(watcher => {
+                    watcher.onMetricsUpdate(report);
+                });
+            });
+            metricsCall.on('error', (error) => {
+                this.metricsCall = null;
+                if (error.code === constants_1.Status.UNIMPLEMENTED) {
+                    this.orcaSupported = false;
+                    return;
+                }
+                if (error.code === constants_1.Status.CANCELLED) {
+                    return;
+                }
+                this.backoffTimer.runOnce();
+            });
+        }
+    }
+}
+class OrcaOobMetricsSubchannelWrapper extends subchannel_interface_1.BaseSubchannelWrapper {
+    constructor(child, metricsListener, intervalMs) {
+        super(child);
+        this.addDataWatcher(new OobMetricsDataWatcher(metricsListener, intervalMs));
+    }
+    getWrappedSubchannel() {
+        return this.child;
+    }
+}
+exports.OrcaOobMetricsSubchannelWrapper = OrcaOobMetricsSubchannelWrapper;
+function createOobMetricsDataProducer(subchannel) {
+    return new OobMetricsDataProducer(subchannel);
+}
+//# sourceMappingURL=orca.js.map
 
 /***/ }),
 
@@ -10782,6 +11654,133 @@ exports.QueuePicker = QueuePicker;
 
 /***/ }),
 
+/***/ 58291:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/*
+ * Copyright 2025 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PriorityQueue = void 0;
+const top = 0;
+const parent = (i) => Math.floor(i / 2);
+const left = (i) => i * 2 + 1;
+const right = (i) => i * 2 + 2;
+/**
+ * A generic priority queue implemented as an array-based binary heap.
+ * Adapted from https://stackoverflow.com/a/42919752/159388
+ */
+class PriorityQueue {
+    /**
+     *
+     * @param comparator Returns true if the first argument should precede the
+     *   second in the queue. Defaults to `(a, b) => a > b`
+     */
+    constructor(comparator = (a, b) => a > b) {
+        this.comparator = comparator;
+        this.heap = [];
+    }
+    /**
+     * @returns The number of items currently in the queue
+     */
+    size() {
+        return this.heap.length;
+    }
+    /**
+     * @returns True if there are no items in the queue, false otherwise
+     */
+    isEmpty() {
+        return this.size() == 0;
+    }
+    /**
+     * Look at the front item that would be popped, without modifying the contents
+     * of the queue
+     * @returns The front item in the queue, or undefined if the queue is empty
+     */
+    peek() {
+        return this.heap[top];
+    }
+    /**
+     * Add the items to the queue
+     * @param values The items to add
+     * @returns The new size of the queue after adding the items
+     */
+    push(...values) {
+        values.forEach(value => {
+            this.heap.push(value);
+            this.siftUp();
+        });
+        return this.size();
+    }
+    /**
+     * Remove the front item in the queue and return it
+     * @returns The front item in the queue, or undefined if the queue is empty
+     */
+    pop() {
+        const poppedValue = this.peek();
+        const bottom = this.size() - 1;
+        if (bottom > top) {
+            this.swap(top, bottom);
+        }
+        this.heap.pop();
+        this.siftDown();
+        return poppedValue;
+    }
+    /**
+     * Simultaneously remove the front item in the queue and add the provided
+     * item.
+     * @param value The item to add
+     * @returns The front item in the queue, or undefined if the queue is empty
+     */
+    replace(value) {
+        const replacedValue = this.peek();
+        this.heap[top] = value;
+        this.siftDown();
+        return replacedValue;
+    }
+    greater(i, j) {
+        return this.comparator(this.heap[i], this.heap[j]);
+    }
+    swap(i, j) {
+        [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+    }
+    siftUp() {
+        let node = this.size() - 1;
+        while (node > top && this.greater(node, parent(node))) {
+            this.swap(node, parent(node));
+            node = parent(node);
+        }
+    }
+    siftDown() {
+        let node = top;
+        while ((left(node) < this.size() && this.greater(left(node), node)) ||
+            (right(node) < this.size() && this.greater(right(node), node))) {
+            let maxChild = (right(node) < this.size() && this.greater(right(node), left(node))) ? right(node) : left(node);
+            this.swap(node, maxChild);
+            node = maxChild;
+        }
+    }
+}
+exports.PriorityQueue = PriorityQueue;
+//# sourceMappingURL=priority-queue.js.map
+
+/***/ }),
+
 /***/ 51149:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -10809,6 +11808,7 @@ const resolver_1 = __nccwpck_require__(76255);
 const dns_1 = __nccwpck_require__(72250);
 const service_config_1 = __nccwpck_require__(70005);
 const constants_1 = __nccwpck_require__(68288);
+const call_interface_1 = __nccwpck_require__(61803);
 const metadata_1 = __nccwpck_require__(36100);
 const logging = __nccwpck_require__(8536);
 const constants_2 = __nccwpck_require__(68288);
@@ -10836,8 +11836,7 @@ class DnsResolver {
         this.pendingLookupPromise = null;
         this.pendingTxtPromise = null;
         this.latestLookupResult = null;
-        this.latestServiceConfig = null;
-        this.latestServiceConfigError = null;
+        this.latestServiceConfigResult = null;
         this.continueResolving = false;
         this.isNextResolutionTimerRunning = false;
         this.isServiceConfigEnabled = true;
@@ -10907,7 +11906,7 @@ class DnsResolver {
             if (!this.returnedIpResult) {
                 trace('Returning IP address for target ' + (0, uri_parser_1.uriToString)(this.target));
                 setImmediate(() => {
-                    this.listener.onSuccessfulResolution(this.ipResult, null, null, null, {});
+                    this.listener((0, call_interface_1.statusOrFromValue)(this.ipResult), {}, null, '');
                 });
                 this.returnedIpResult = true;
             }
@@ -10919,11 +11918,10 @@ class DnsResolver {
         if (this.dnsHostname === null) {
             trace('Failed to parse DNS address ' + (0, uri_parser_1.uriToString)(this.target));
             setImmediate(() => {
-                this.listener.onError({
+                this.listener((0, call_interface_1.statusOrFromError)({
                     code: constants_1.Status.UNAVAILABLE,
-                    details: `Failed to parse DNS address ${(0, uri_parser_1.uriToString)(this.target)}`,
-                    metadata: new metadata_1.Metadata(),
-                });
+                    details: `Failed to parse DNS address ${(0, uri_parser_1.uriToString)(this.target)}`
+                }), {}, null, '');
             });
             this.stopNextResolutionTimer();
         }
@@ -10946,11 +11944,9 @@ class DnsResolver {
                     return;
                 }
                 this.pendingLookupPromise = null;
-                this.backoff.reset();
-                this.backoff.stop();
-                this.latestLookupResult = addressList.map(address => ({
+                this.latestLookupResult = (0, call_interface_1.statusOrFromValue)(addressList.map(address => ({
                     addresses: [address],
-                }));
+                })));
                 const allAddressesString = '[' +
                     addressList.map(addr => addr.host + ':' + addr.port).join(',') +
                     ']';
@@ -10958,15 +11954,12 @@ class DnsResolver {
                     (0, uri_parser_1.uriToString)(this.target) +
                     ': ' +
                     allAddressesString);
-                if (this.latestLookupResult.length === 0) {
-                    this.listener.onError(this.defaultResolutionError);
-                    return;
-                }
                 /* If the TXT lookup has not yet finished, both of the last two
                  * arguments will be null, which is the equivalent of getting an
                  * empty TXT response. When the TXT lookup does finish, its handler
                  * can update the service config by using the same address list */
-                this.listener.onSuccessfulResolution(this.latestLookupResult, this.latestServiceConfig, this.latestServiceConfigError, null, {});
+                const healthStatus = this.listener(this.latestLookupResult, {}, this.latestServiceConfigResult, '');
+                this.handleHealthStatus(healthStatus);
             }, err => {
                 if (this.pendingLookupPromise === null) {
                     return;
@@ -10977,7 +11970,7 @@ class DnsResolver {
                     err.message);
                 this.pendingLookupPromise = null;
                 this.stopNextResolutionTimer();
-                this.listener.onError(this.defaultResolutionError);
+                this.listener((0, call_interface_1.statusOrFromError)(this.defaultResolutionError), {}, this.latestServiceConfigResult, '');
             });
             /* If there already is a still-pending TXT resolution, we can just use
              * that result when it comes in */
@@ -10991,22 +11984,28 @@ class DnsResolver {
                         return;
                     }
                     this.pendingTxtPromise = null;
+                    let serviceConfig;
                     try {
-                        this.latestServiceConfig = (0, service_config_1.extractAndSelectServiceConfig)(txtRecord, this.percentage);
+                        serviceConfig = (0, service_config_1.extractAndSelectServiceConfig)(txtRecord, this.percentage);
+                        if (serviceConfig) {
+                            this.latestServiceConfigResult = (0, call_interface_1.statusOrFromValue)(serviceConfig);
+                        }
+                        else {
+                            this.latestServiceConfigResult = null;
+                        }
                     }
                     catch (err) {
-                        this.latestServiceConfigError = {
+                        this.latestServiceConfigResult = (0, call_interface_1.statusOrFromError)({
                             code: constants_1.Status.UNAVAILABLE,
-                            details: `Parsing service config failed with error ${err.message}`,
-                            metadata: new metadata_1.Metadata(),
-                        };
+                            details: `Parsing service config failed with error ${err.message}`
+                        });
                     }
                     if (this.latestLookupResult !== null) {
                         /* We rely here on the assumption that calling this function with
                          * identical parameters will be essentialy idempotent, and calling
                          * it with the same address list and a different service config
                          * should result in a fast and seamless switchover. */
-                        this.listener.onSuccessfulResolution(this.latestLookupResult, this.latestServiceConfig, this.latestServiceConfigError, null, {});
+                        this.listener(this.latestLookupResult, {}, this.latestServiceConfigResult, '');
                     }
                 }, err => {
                     /* If TXT lookup fails we should do nothing, which means that we
@@ -11018,6 +12017,21 @@ class DnsResolver {
                      * bubble up as an unhandled promise rejection. */
                 });
             }
+        }
+    }
+    /**
+     * The ResolverListener returns a boolean indicating whether the LB policy
+     * accepted the resolution result. A false result on an otherwise successful
+     * resolution should be treated as a resolution failure.
+     * @param healthStatus
+     */
+    handleHealthStatus(healthStatus) {
+        if (healthStatus) {
+            this.backoff.stop();
+            this.backoff.reset();
+        }
+        else {
+            this.continueResolving = true;
         }
     }
     async lookup(hostname) {
@@ -11113,8 +12127,7 @@ class DnsResolver {
         this.pendingLookupPromise = null;
         this.pendingTxtPromise = null;
         this.latestLookupResult = null;
-        this.latestServiceConfig = null;
-        this.latestServiceConfigError = null;
+        this.latestServiceConfigResult = null;
         this.returnedIpResult = false;
     }
     /**
@@ -11161,9 +12174,11 @@ function setup() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setup = setup;
 const net_1 = __nccwpck_require__(69278);
+const call_interface_1 = __nccwpck_require__(61803);
 const constants_1 = __nccwpck_require__(68288);
 const metadata_1 = __nccwpck_require__(36100);
 const resolver_1 = __nccwpck_require__(76255);
+const subchannel_address_1 = __nccwpck_require__(97021);
 const uri_parser_1 = __nccwpck_require__(56027);
 const logging = __nccwpck_require__(8536);
 const TRACER_NAME = 'ip_resolver';
@@ -11219,17 +12234,17 @@ class IpResolver {
             });
         }
         this.endpoints = addresses.map(address => ({ addresses: [address] }));
-        trace('Parsed ' + target.scheme + ' address list ' + addresses);
+        trace('Parsed ' + target.scheme + ' address list ' + addresses.map(subchannel_address_1.subchannelAddressToString));
     }
     updateResolution() {
         if (!this.hasReturnedResult) {
             this.hasReturnedResult = true;
             process.nextTick(() => {
                 if (this.error) {
-                    this.listener.onError(this.error);
+                    this.listener((0, call_interface_1.statusOrFromError)(this.error), {}, null, '');
                 }
                 else {
-                    this.listener.onSuccessfulResolution(this.endpoints, null, null, null, {});
+                    this.listener((0, call_interface_1.statusOrFromValue)(this.endpoints), {}, null, '');
                 }
             });
         }
@@ -11272,6 +12287,7 @@ function setup() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.setup = setup;
 const resolver_1 = __nccwpck_require__(76255);
+const call_interface_1 = __nccwpck_require__(61803);
 class UdsResolver {
     constructor(target, listener, channelOptions) {
         this.listener = listener;
@@ -11289,7 +12305,7 @@ class UdsResolver {
     updateResolution() {
         if (!this.hasReturnedResult) {
             this.hasReturnedResult = true;
-            process.nextTick(this.listener.onSuccessfulResolution, this.endpoints, null, null, null, {});
+            process.nextTick(this.listener, (0, call_interface_1.statusOrFromValue)(this.endpoints), {}, null, '');
         }
     }
     destroy() {
@@ -11328,12 +12344,14 @@ function setup() {
  *
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CHANNEL_ARGS_CONFIG_SELECTOR_KEY = void 0;
 exports.registerResolver = registerResolver;
 exports.registerDefaultScheme = registerDefaultScheme;
 exports.createResolver = createResolver;
 exports.getDefaultAuthority = getDefaultAuthority;
 exports.mapUriDefaultScheme = mapUriDefaultScheme;
 const uri_parser_1 = __nccwpck_require__(56027);
+exports.CHANNEL_ARGS_CONFIG_SELECTOR_KEY = 'grpc.internal.config_selector';
 const registeredResolvers = {};
 let defaultScheme = null;
 /**
@@ -11712,6 +12730,14 @@ class ResolvingCall {
     getCallNumber() {
         return this.callNumber;
     }
+    getAuthContext() {
+        if (this.child) {
+            return this.child.getAuthContext();
+        }
+        else {
+            return null;
+        }
+    }
 }
 exports.ResolvingCall = ResolvingCall;
 //# sourceMappingURL=resolving-call.js.map
@@ -11903,60 +12929,7 @@ class ResolvingLoadBalancer {
             addChannelzChild: channelControlHelper.addChannelzChild.bind(channelControlHelper),
             removeChannelzChild: channelControlHelper.removeChannelzChild.bind(channelControlHelper),
         });
-        this.innerResolver = (0, resolver_1.createResolver)(target, {
-            onSuccessfulResolution: (endpointList, serviceConfig, serviceConfigError, configSelector, attributes) => {
-                var _a;
-                this.backoffTimeout.stop();
-                this.backoffTimeout.reset();
-                let workingServiceConfig = null;
-                /* This first group of conditionals implements the algorithm described
-                 * in https://github.com/grpc/proposal/blob/master/A21-service-config-error-handling.md
-                 * in the section called "Behavior on receiving a new gRPC Config".
-                 */
-                if (serviceConfig === null) {
-                    // Step 4 and 5
-                    if (serviceConfigError === null) {
-                        // Step 5
-                        this.previousServiceConfig = null;
-                        workingServiceConfig = this.defaultServiceConfig;
-                    }
-                    else {
-                        // Step 4
-                        if (this.previousServiceConfig === null) {
-                            // Step 4.ii
-                            this.handleResolutionFailure(serviceConfigError);
-                        }
-                        else {
-                            // Step 4.i
-                            workingServiceConfig = this.previousServiceConfig;
-                        }
-                    }
-                }
-                else {
-                    // Step 3
-                    workingServiceConfig = serviceConfig;
-                    this.previousServiceConfig = serviceConfig;
-                }
-                const workingConfigList = (_a = workingServiceConfig === null || workingServiceConfig === void 0 ? void 0 : workingServiceConfig.loadBalancingConfig) !== null && _a !== void 0 ? _a : [];
-                const loadBalancingConfig = (0, load_balancer_1.selectLbConfigFromList)(workingConfigList, true);
-                if (loadBalancingConfig === null) {
-                    // There were load balancing configs but none are supported. This counts as a resolution failure
-                    this.handleResolutionFailure({
-                        code: constants_1.Status.UNAVAILABLE,
-                        details: 'All load balancer options in service config are not compatible',
-                        metadata: new metadata_1.Metadata(),
-                    });
-                    configSelector === null || configSelector === void 0 ? void 0 : configSelector.unref();
-                    return;
-                }
-                this.childLoadBalancer.updateAddressList(endpointList, loadBalancingConfig, Object.assign(Object.assign({}, this.channelOptions), attributes));
-                const finalServiceConfig = workingServiceConfig !== null && workingServiceConfig !== void 0 ? workingServiceConfig : this.defaultServiceConfig;
-                this.onSuccessfulResolution(finalServiceConfig, configSelector !== null && configSelector !== void 0 ? configSelector : getDefaultConfigSelector(finalServiceConfig));
-            },
-            onError: (error) => {
-                this.handleResolutionFailure(error);
-            },
-        }, channelOptions);
+        this.innerResolver = (0, resolver_1.createResolver)(target, this.handleResolverResult.bind(this), channelOptions);
         const backoffOptions = {
             initialDelay: channelOptions['grpc.initial_reconnect_backoff_ms'],
             maxDelay: channelOptions['grpc.max_reconnect_backoff_ms'],
@@ -11971,6 +12944,47 @@ class ResolvingLoadBalancer {
             }
         }, backoffOptions);
         this.backoffTimeout.unref();
+    }
+    handleResolverResult(endpointList, attributes, serviceConfig, resolutionNote) {
+        var _a, _b;
+        this.backoffTimeout.stop();
+        this.backoffTimeout.reset();
+        let resultAccepted = true;
+        let workingServiceConfig = null;
+        if (serviceConfig === null) {
+            workingServiceConfig = this.defaultServiceConfig;
+        }
+        else if (serviceConfig.ok) {
+            workingServiceConfig = serviceConfig.value;
+        }
+        else {
+            if (this.previousServiceConfig !== null) {
+                workingServiceConfig = this.previousServiceConfig;
+            }
+            else {
+                resultAccepted = false;
+                this.handleResolutionFailure(serviceConfig.error);
+            }
+        }
+        if (workingServiceConfig !== null) {
+            const workingConfigList = (_a = workingServiceConfig === null || workingServiceConfig === void 0 ? void 0 : workingServiceConfig.loadBalancingConfig) !== null && _a !== void 0 ? _a : [];
+            const loadBalancingConfig = (0, load_balancer_1.selectLbConfigFromList)(workingConfigList, true);
+            if (loadBalancingConfig === null) {
+                resultAccepted = false;
+                this.handleResolutionFailure({
+                    code: constants_1.Status.UNAVAILABLE,
+                    details: 'All load balancer options in service config are not compatible',
+                    metadata: new metadata_1.Metadata(),
+                });
+            }
+            else {
+                resultAccepted = this.childLoadBalancer.updateAddressList(endpointList, loadBalancingConfig, Object.assign(Object.assign({}, this.channelOptions), attributes), resolutionNote);
+            }
+        }
+        if (resultAccepted) {
+            this.onSuccessfulResolution(workingServiceConfig, (_b = attributes[resolver_1.CHANNEL_ARGS_CONFIG_SELECTOR_KEY]) !== null && _b !== void 0 ? _b : getDefaultConfigSelector(workingServiceConfig));
+        }
+        return resultAccepted;
     }
     updateResolution() {
         this.innerResolver.updateResolution();
@@ -12339,13 +13353,18 @@ class RetryingCall {
                 value.toString().toLowerCase() === ((_a = constants_1.Status[code]) === null || _a === void 0 ? void 0 : _a.toLowerCase());
         });
     }
+    getNextRetryJitter() {
+        /* Jitter of +-20% is applied: https://github.com/grpc/proposal/blob/master/A6-client-retries.md#exponential-backoff */
+        return Math.random() * (1.2 - 0.8) + 0.8;
+    }
     getNextRetryBackoffMs() {
         var _a;
         const retryPolicy = (_a = this.callConfig) === null || _a === void 0 ? void 0 : _a.methodConfig.retryPolicy;
         if (!retryPolicy) {
             return 0;
         }
-        const nextBackoffMs = Math.random() * this.nextRetryBackoffSec * 1000;
+        const jitter = this.getNextRetryJitter();
+        const nextBackoffMs = jitter * this.nextRetryBackoffSec * 1000;
         const maxBackoffSec = Number(retryPolicy.maxBackoff.substring(0, retryPolicy.maxBackoff.length - 1));
         this.nextRetryBackoffSec = Math.min(this.nextRetryBackoffSec * retryPolicy.backoffMultiplier, maxBackoffSec);
         return nextBackoffMs;
@@ -12567,7 +13586,7 @@ class RetryingCall {
             state: 'ACTIVE',
             call: child,
             nextMessageToSend: 0,
-            startTime: new Date()
+            startTime: new Date(),
         });
         const previousAttempts = this.attempts - 1;
         const initialMetadata = this.initialMetadata.clone();
@@ -12729,6 +13748,14 @@ class RetryingCall {
     getHost() {
         return this.host;
     }
+    getAuthContext() {
+        if (this.committedCallIndex !== null) {
+            return this.underlyingCalls[this.committedCallIndex].call.getAuthContext();
+        }
+        else {
+            return null;
+        }
+    }
 }
 exports.RetryingCall = RetryingCall;
 //# sourceMappingURL=retrying-call.js.map
@@ -12804,6 +13831,12 @@ class ServerUnaryCallImpl extends events_1.EventEmitter {
     getHost() {
         return this.call.getHost();
     }
+    getAuthContext() {
+        return this.call.getAuthContext();
+    }
+    getMetricsRecorder() {
+        return this.call.getMetricsRecorder();
+    }
 }
 exports.ServerUnaryCallImpl = ServerUnaryCallImpl;
 class ServerReadableStreamImpl extends stream_1.Readable {
@@ -12831,6 +13864,12 @@ class ServerReadableStreamImpl extends stream_1.Readable {
     }
     getHost() {
         return this.call.getHost();
+    }
+    getAuthContext() {
+        return this.call.getAuthContext();
+    }
+    getMetricsRecorder() {
+        return this.call.getMetricsRecorder();
     }
 }
 exports.ServerReadableStreamImpl = ServerReadableStreamImpl;
@@ -12866,6 +13905,12 @@ class ServerWritableStreamImpl extends stream_1.Writable {
     }
     getHost() {
         return this.call.getHost();
+    }
+    getAuthContext() {
+        return this.call.getAuthContext();
+    }
+    getMetricsRecorder() {
+        return this.call.getMetricsRecorder();
     }
     _write(chunk, encoding, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12917,6 +13962,12 @@ class ServerDuplexStreamImpl extends stream_1.Duplex {
     }
     getHost() {
         return this.call.getHost();
+    }
+    getAuthContext() {
+        return this.call.getAuthContext();
+    }
+    getMetricsRecorder() {
+        return this.call.getMetricsRecorder();
     }
     _read(size) {
         this.call.startRead();
@@ -13297,6 +14348,8 @@ const error_1 = __nccwpck_require__(98219);
 const zlib = __nccwpck_require__(43106);
 const stream_decoder_1 = __nccwpck_require__(47956);
 const logging = __nccwpck_require__(8536);
+const tls_1 = __nccwpck_require__(64756);
+const orca_1 = __nccwpck_require__(82124);
 const TRACER_NAME = 'server_call';
 function trace(text) {
     logging.trace(constants_1.LogVerbosity.DEBUG, TRACER_NAME, text);
@@ -13572,6 +14625,15 @@ class ServerInterceptingCall {
     getHost() {
         return this.nextCall.getHost();
     }
+    getAuthContext() {
+        return this.nextCall.getAuthContext();
+    }
+    getConnectionInfo() {
+        return this.nextCall.getConnectionInfo();
+    }
+    getMetricsRecorder() {
+        return this.nextCall.getMetricsRecorder();
+    }
 }
 exports.ServerInterceptingCall = ServerInterceptingCall;
 const GRPC_ACCEPT_ENCODING_HEADER = 'grpc-accept-encoding';
@@ -13603,7 +14665,7 @@ const defaultResponseOptions = {
 };
 class BaseServerInterceptingCall {
     constructor(stream, headers, callEventTracker, handler, options) {
-        var _a;
+        var _a, _b;
         this.stream = stream;
         this.callEventTracker = callEventTracker;
         this.handler = handler;
@@ -13621,6 +14683,7 @@ class BaseServerInterceptingCall {
         this.isReadPending = false;
         this.receivedHalfClose = false;
         this.streamEnded = false;
+        this.metricsRecorder = new orca_1.PerRequestMetricRecorder();
         this.stream.once('error', (err) => {
             /* We need an error handler to avoid uncaught error event exceptions, but
              * there is nothing we can reasonably do here. Any error event should
@@ -13683,6 +14746,14 @@ class BaseServerInterceptingCall {
         metadata.remove(http2.constants.HTTP2_HEADER_TE);
         metadata.remove(http2.constants.HTTP2_HEADER_CONTENT_TYPE);
         this.metadata = metadata;
+        const socket = (_b = stream.session) === null || _b === void 0 ? void 0 : _b.socket;
+        this.connectionInfo = {
+            localAddress: socket === null || socket === void 0 ? void 0 : socket.localAddress,
+            localPort: socket === null || socket === void 0 ? void 0 : socket.localPort,
+            remoteAddress: socket === null || socket === void 0 ? void 0 : socket.remoteAddress,
+            remotePort: socket === null || socket === void 0 ? void 0 : socket.remotePort
+        };
+        this.shouldSendMetrics = !!options['grpc.server_call_metric_recording'];
     }
     handleTimeoutHeader(timeoutHeader) {
         const match = timeoutHeader.toString().match(DEADLINE_REGEX);
@@ -13950,7 +15021,7 @@ class BaseServerInterceptingCall {
         });
     }
     sendStatus(status) {
-        var _a, _b;
+        var _a, _b, _c;
         if (this.checkCancelled()) {
             return;
         }
@@ -13960,17 +15031,20 @@ class BaseServerInterceptingCall {
             constants_1.Status[status.code] +
             ' details: ' +
             status.details);
+        const statusMetadata = (_c = (_b = status.metadata) === null || _b === void 0 ? void 0 : _b.clone()) !== null && _c !== void 0 ? _c : new metadata_1.Metadata();
+        if (this.shouldSendMetrics) {
+            statusMetadata.set(orca_1.GRPC_METRICS_HEADER, this.metricsRecorder.serialize());
+        }
         if (this.metadataSent) {
             if (!this.wantTrailers) {
                 this.wantTrailers = true;
                 this.stream.once('wantTrailers', () => {
-                    var _a;
                     if (this.callEventTracker && !this.streamEnded) {
                         this.streamEnded = true;
                         this.callEventTracker.onStreamEnd(true);
                         this.callEventTracker.onCallEnd(status);
                     }
-                    const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, (_a = status.metadata) === null || _a === void 0 ? void 0 : _a.toHttp2Headers());
+                    const trailersToSend = Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, statusMetadata.toHttp2Headers());
                     this.stream.sendTrailers(trailersToSend);
                     this.notifyOnCancel();
                 });
@@ -13987,7 +15061,7 @@ class BaseServerInterceptingCall {
                 this.callEventTracker.onCallEnd(status);
             }
             // Trailers-only response
-            const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, defaultResponseHeaders), (_b = status.metadata) === null || _b === void 0 ? void 0 : _b.toHttp2Headers());
+            const trailersToSend = Object.assign(Object.assign({ [GRPC_STATUS_HEADER]: status.code, [GRPC_MESSAGE_HEADER]: encodeURI(status.details) }, defaultResponseHeaders), statusMetadata.toHttp2Headers());
             this.stream.respond(trailersToSend, { endStream: true });
             this.notifyOnCancel();
         }
@@ -14027,6 +15101,25 @@ class BaseServerInterceptingCall {
     }
     getHost() {
         return this.host;
+    }
+    getAuthContext() {
+        var _a;
+        if (((_a = this.stream.session) === null || _a === void 0 ? void 0 : _a.socket) instanceof tls_1.TLSSocket) {
+            const peerCertificate = this.stream.session.socket.getPeerCertificate();
+            return {
+                transportSecurityType: 'ssl',
+                sslPeerCertificate: peerCertificate.raw ? peerCertificate : undefined
+            };
+        }
+        else {
+            return {};
+        }
+    }
+    getConnectionInfo() {
+        return this.connectionInfo;
+    }
+    getMetricsRecorder() {
+        return this.metricsRecorder;
     }
 }
 exports.BaseServerInterceptingCall = BaseServerInterceptingCall;
@@ -14545,20 +15638,23 @@ let Server = (() => {
             }
             resolvePort(port) {
                 return new Promise((resolve, reject) => {
-                    const resolverListener = {
-                        onSuccessfulResolution: (endpointList, serviceConfig, serviceConfigError) => {
-                            // We only want one resolution result. Discard all future results
-                            resolverListener.onSuccessfulResolution = () => { };
-                            const addressList = [].concat(...endpointList.map(endpoint => endpoint.addresses));
-                            if (addressList.length === 0) {
-                                reject(new Error(`No addresses resolved for port ${port}`));
-                                return;
-                            }
-                            resolve(addressList);
-                        },
-                        onError: error => {
-                            reject(new Error(error.details));
-                        },
+                    let seenResolution = false;
+                    const resolverListener = (endpointList, attributes, serviceConfig, resolutionNote) => {
+                        if (seenResolution) {
+                            return true;
+                        }
+                        seenResolution = true;
+                        if (!endpointList.ok) {
+                            reject(new Error(endpointList.error.details));
+                            return true;
+                        }
+                        const addressList = [].concat(...endpointList.value.map(endpoint => endpoint.addresses));
+                        if (addressList.length === 0) {
+                            reject(new Error(`No addresses resolved for port ${port}`));
+                            return true;
+                        }
+                        resolve(addressList);
+                        return true;
                     };
                     const resolver = (0, resolver_1.createResolver)(port, resolverListener, this.options);
                     resolver.updateResolution();
@@ -16096,6 +17192,258 @@ function extractAndSelectServiceConfig(txtRecord, percentage) {
 
 /***/ }),
 
+/***/ 40701:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+/*
+ * Copyright 2025 gRPC authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SingleSubchannelChannel = void 0;
+const call_number_1 = __nccwpck_require__(35675);
+const channelz_1 = __nccwpck_require__(68198);
+const compression_filter_1 = __nccwpck_require__(43430);
+const connectivity_state_1 = __nccwpck_require__(60778);
+const constants_1 = __nccwpck_require__(68288);
+const control_plane_status_1 = __nccwpck_require__(39962);
+const deadline_1 = __nccwpck_require__(52173);
+const filter_stack_1 = __nccwpck_require__(95726);
+const metadata_1 = __nccwpck_require__(36100);
+const resolver_1 = __nccwpck_require__(76255);
+const uri_parser_1 = __nccwpck_require__(56027);
+class SubchannelCallWrapper {
+    constructor(subchannel, method, filterStackFactory, options, callNumber) {
+        var _a, _b;
+        this.subchannel = subchannel;
+        this.method = method;
+        this.options = options;
+        this.callNumber = callNumber;
+        this.childCall = null;
+        this.pendingMessage = null;
+        this.readPending = false;
+        this.halfClosePending = false;
+        this.pendingStatus = null;
+        this.readFilterPending = false;
+        this.writeFilterPending = false;
+        const splitPath = this.method.split('/');
+        let serviceName = '';
+        /* The standard path format is "/{serviceName}/{methodName}", so if we split
+          * by '/', the first item should be empty and the second should be the
+          * service name */
+        if (splitPath.length >= 2) {
+            serviceName = splitPath[1];
+        }
+        const hostname = (_b = (_a = (0, uri_parser_1.splitHostPort)(this.options.host)) === null || _a === void 0 ? void 0 : _a.host) !== null && _b !== void 0 ? _b : 'localhost';
+        /* Currently, call credentials are only allowed on HTTPS connections, so we
+          * can assume that the scheme is "https" */
+        this.serviceUrl = `https://${hostname}/${serviceName}`;
+        const timeout = (0, deadline_1.getRelativeTimeout)(options.deadline);
+        if (timeout !== Infinity) {
+            if (timeout <= 0) {
+                this.cancelWithStatus(constants_1.Status.DEADLINE_EXCEEDED, 'Deadline exceeded');
+            }
+            else {
+                setTimeout(() => {
+                    this.cancelWithStatus(constants_1.Status.DEADLINE_EXCEEDED, 'Deadline exceeded');
+                }, timeout);
+            }
+        }
+        this.filterStack = filterStackFactory.createFilter();
+    }
+    cancelWithStatus(status, details) {
+        if (this.childCall) {
+            this.childCall.cancelWithStatus(status, details);
+        }
+        else {
+            this.pendingStatus = {
+                code: status,
+                details: details,
+                metadata: new metadata_1.Metadata()
+            };
+        }
+    }
+    getPeer() {
+        var _a, _b;
+        return (_b = (_a = this.childCall) === null || _a === void 0 ? void 0 : _a.getPeer()) !== null && _b !== void 0 ? _b : this.subchannel.getAddress();
+    }
+    async start(metadata, listener) {
+        if (this.pendingStatus) {
+            listener.onReceiveStatus(this.pendingStatus);
+            return;
+        }
+        if (this.subchannel.getConnectivityState() !== connectivity_state_1.ConnectivityState.READY) {
+            listener.onReceiveStatus({
+                code: constants_1.Status.UNAVAILABLE,
+                details: 'Subchannel not ready',
+                metadata: new metadata_1.Metadata()
+            });
+            return;
+        }
+        const filteredMetadata = await this.filterStack.sendMetadata(Promise.resolve(metadata));
+        let credsMetadata;
+        try {
+            credsMetadata = await this.subchannel.getCallCredentials()
+                .generateMetadata({ method_name: this.method, service_url: this.serviceUrl });
+        }
+        catch (e) {
+            const error = e;
+            const { code, details } = (0, control_plane_status_1.restrictControlPlaneStatusCode)(typeof error.code === 'number' ? error.code : constants_1.Status.UNKNOWN, `Getting metadata from plugin failed with error: ${error.message}`);
+            listener.onReceiveStatus({
+                code: code,
+                details: details,
+                metadata: new metadata_1.Metadata(),
+            });
+            return;
+        }
+        credsMetadata.merge(filteredMetadata);
+        const childListener = {
+            onReceiveMetadata: async (metadata) => {
+                listener.onReceiveMetadata(await this.filterStack.receiveMetadata(metadata));
+            },
+            onReceiveMessage: async (message) => {
+                this.readFilterPending = true;
+                const filteredMessage = await this.filterStack.receiveMessage(message);
+                this.readFilterPending = false;
+                listener.onReceiveMessage(filteredMessage);
+                if (this.pendingStatus) {
+                    listener.onReceiveStatus(this.pendingStatus);
+                }
+            },
+            onReceiveStatus: async (status) => {
+                const filteredStatus = await this.filterStack.receiveTrailers(status);
+                if (this.readFilterPending) {
+                    this.pendingStatus = filteredStatus;
+                }
+                else {
+                    listener.onReceiveStatus(filteredStatus);
+                }
+            }
+        };
+        this.childCall = this.subchannel.createCall(credsMetadata, this.options.host, this.method, childListener);
+        if (this.readPending) {
+            this.childCall.startRead();
+        }
+        if (this.pendingMessage) {
+            this.childCall.sendMessageWithContext(this.pendingMessage.context, this.pendingMessage.message);
+        }
+        if (this.halfClosePending && !this.writeFilterPending) {
+            this.childCall.halfClose();
+        }
+    }
+    async sendMessageWithContext(context, message) {
+        this.writeFilterPending = true;
+        const filteredMessage = await this.filterStack.sendMessage(Promise.resolve({ message: message, flags: context.flags }));
+        this.writeFilterPending = false;
+        if (this.childCall) {
+            this.childCall.sendMessageWithContext(context, filteredMessage.message);
+            if (this.halfClosePending) {
+                this.childCall.halfClose();
+            }
+        }
+        else {
+            this.pendingMessage = { context, message: filteredMessage.message };
+        }
+    }
+    startRead() {
+        if (this.childCall) {
+            this.childCall.startRead();
+        }
+        else {
+            this.readPending = true;
+        }
+    }
+    halfClose() {
+        if (this.childCall && !this.writeFilterPending) {
+            this.childCall.halfClose();
+        }
+        else {
+            this.halfClosePending = true;
+        }
+    }
+    getCallNumber() {
+        return this.callNumber;
+    }
+    setCredentials(credentials) {
+        throw new Error("Method not implemented.");
+    }
+    getAuthContext() {
+        if (this.childCall) {
+            return this.childCall.getAuthContext();
+        }
+        else {
+            return null;
+        }
+    }
+}
+class SingleSubchannelChannel {
+    constructor(subchannel, target, options) {
+        this.subchannel = subchannel;
+        this.target = target;
+        this.channelzEnabled = false;
+        this.channelzTrace = new channelz_1.ChannelzTrace();
+        this.callTracker = new channelz_1.ChannelzCallTracker();
+        this.childrenTracker = new channelz_1.ChannelzChildrenTracker();
+        this.channelzEnabled = options['grpc.enable_channelz'] !== 0;
+        this.channelzRef = (0, channelz_1.registerChannelzChannel)((0, uri_parser_1.uriToString)(target), () => ({
+            target: `${(0, uri_parser_1.uriToString)(target)} (${subchannel.getAddress()})`,
+            state: this.subchannel.getConnectivityState(),
+            trace: this.channelzTrace,
+            callTracker: this.callTracker,
+            children: this.childrenTracker.getChildLists()
+        }), this.channelzEnabled);
+        if (this.channelzEnabled) {
+            this.childrenTracker.refChild(subchannel.getChannelzRef());
+        }
+        this.filterStackFactory = new filter_stack_1.FilterStackFactory([new compression_filter_1.CompressionFilterFactory(this, options)]);
+    }
+    close() {
+        if (this.channelzEnabled) {
+            this.childrenTracker.unrefChild(this.subchannel.getChannelzRef());
+        }
+        (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
+    }
+    getTarget() {
+        return (0, uri_parser_1.uriToString)(this.target);
+    }
+    getConnectivityState(tryToConnect) {
+        throw new Error("Method not implemented.");
+    }
+    watchConnectivityState(currentState, deadline, callback) {
+        throw new Error("Method not implemented.");
+    }
+    getChannelzRef() {
+        return this.channelzRef;
+    }
+    createCall(method, deadline) {
+        const callOptions = {
+            deadline: deadline,
+            host: (0, resolver_1.getDefaultAuthority)(this.target),
+            flags: constants_1.Propagate.DEFAULTS,
+            parentCall: null
+        };
+        return new SubchannelCallWrapper(this.subchannel, method, this.filterStackFactory, callOptions, (0, call_number_1.getNextCallNumber)());
+    }
+}
+exports.SingleSubchannelChannel = SingleSubchannelChannel;
+//# sourceMappingURL=single-subchannel-channel.js.map
+
+/***/ }),
+
 /***/ 7901:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -16975,6 +18323,9 @@ class Http2SubchannelCall {
     getCallNumber() {
         return this.callId;
     }
+    getAuthContext() {
+        return this.transport.getAuthContext();
+    }
     startRead() {
         /* If the stream has ended with an error, we should not emit any more
          * messages and we should communicate that the stream has ended */
@@ -17064,6 +18415,8 @@ class BaseSubchannelWrapper {
         this.child = child;
         this.healthy = true;
         this.healthListeners = new Set();
+        this.refcount = 0;
+        this.dataWatchers = new Set();
         child.addHealthStateWatcher(childHealthy => {
             /* A change to the child health state only affects this wrapper's overall
              * health state if this wrapper is reporting healthy. */
@@ -17097,9 +18450,19 @@ class BaseSubchannelWrapper {
     }
     ref() {
         this.child.ref();
+        this.refcount += 1;
     }
     unref() {
         this.child.unref();
+        this.refcount -= 1;
+        if (this.refcount === 0) {
+            this.destroy();
+        }
+    }
+    destroy() {
+        for (const watcher of this.dataWatchers) {
+            watcher.destroy();
+        }
     }
     getChannelzRef() {
         return this.child.getChannelzRef();
@@ -17112,6 +18475,10 @@ class BaseSubchannelWrapper {
     }
     removeHealthStateWatcher(listener) {
         this.healthListeners.delete(listener);
+    }
+    addDataWatcher(dataWatcher) {
+        dataWatcher.setSubchannel(this.getRealSubchannel());
+        this.dataWatchers.add(dataWatcher);
     }
     setHealthy(healthy) {
         if (healthy !== this.healthy) {
@@ -17131,6 +18498,9 @@ class BaseSubchannelWrapper {
     }
     getCallCredentials() {
         return this.child.getCallCredentials();
+    }
+    getChannel() {
+        return this.child.getChannel();
     }
 }
 exports.BaseSubchannelWrapper = BaseSubchannelWrapper;
@@ -17312,6 +18682,7 @@ const constants_1 = __nccwpck_require__(68288);
 const uri_parser_1 = __nccwpck_require__(56027);
 const subchannel_address_1 = __nccwpck_require__(97021);
 const channelz_1 = __nccwpck_require__(68198);
+const single_subchannel_channel_1 = __nccwpck_require__(40701);
 const TRACER_NAME = 'subchannel';
 /* setInterval and setTimeout only accept signed 32 bit integers. JS doesn't
  * have a constant for the max signed 32 bit integer, so this is a simple way
@@ -17360,6 +18731,8 @@ class Subchannel {
         this.refcount = 0;
         // Channelz info
         this.channelzEnabled = true;
+        this.dataProducers = new Map();
+        this.subchannelChannel = null;
         const backoffOptions = {
             initialDelay: options['grpc.initial_reconnect_backoff_ms'],
             maxDelay: options['grpc.max_reconnect_backoff_ms'],
@@ -17656,6 +19029,27 @@ class Subchannel {
     getCallCredentials() {
         return this.secureConnector.getCallCredentials();
     }
+    getChannel() {
+        if (!this.subchannelChannel) {
+            this.subchannelChannel = new single_subchannel_channel_1.SingleSubchannelChannel(this, this.channelTarget, this.options);
+        }
+        return this.subchannelChannel;
+    }
+    addDataWatcher(dataWatcher) {
+        throw new Error('Not implemented');
+    }
+    getOrCreateDataProducer(name, createDataProducer) {
+        const existingProducer = this.dataProducers.get(name);
+        if (existingProducer) {
+            return existingProducer;
+        }
+        const newProducer = createDataProducer(this);
+        this.dataProducers.set(name, newProducer);
+        return newProducer;
+    }
+    removeDataProducer(name) {
+        this.dataProducers.delete(name);
+    }
 }
 exports.Subchannel = Subchannel;
 //# sourceMappingURL=subchannel.js.map
@@ -17727,6 +19121,7 @@ function getDefaultRootsData() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Http2SubchannelConnector = void 0;
 const http2 = __nccwpck_require__(85675);
+const tls_1 = __nccwpck_require__(64756);
 const channelz_1 = __nccwpck_require__(68198);
 const constants_1 = __nccwpck_require__(68288);
 const http_proxy_1 = __nccwpck_require__(18954);
@@ -17854,6 +19249,15 @@ class Http2Transport {
          * which should only happen after everything else is set up. */
         if (this.keepaliveWithoutCalls) {
             this.maybeStartKeepalivePingTimer();
+        }
+        if (session.socket instanceof tls_1.TLSSocket) {
+            this.authContext = {
+                transportSecurityType: 'ssl',
+                sslPeerCertificate: session.socket.getPeerCertificate()
+            };
+        }
+        else {
+            this.authContext = {};
         }
     }
     getChannelzInfo() {
@@ -18172,6 +19576,9 @@ class Http2Transport {
     getOptions() {
         return this.options;
     }
+    getAuthContext() {
+        return this.authContext;
+    }
     shutdown() {
         this.session.close();
         (0, channelz_1.unregisterChannelzRef)(this.channelzRef);
@@ -18194,6 +19601,7 @@ class Http2SubchannelConnector {
             return Promise.reject('Connection closed before starting HTTP/2 handshake');
         }
         return new Promise((resolve, reject) => {
+            var _a, _b, _c, _d, _e, _f, _g;
             let remoteName = null;
             let realTarget = this.channelTarget;
             if ('grpc.http_connect_target' in options) {
@@ -18230,19 +19638,34 @@ class Http2SubchannelConnector {
             const sessionOptions = {
                 createConnection: (authority, option) => {
                     return secureConnectResult.socket;
+                },
+                settings: {
+                    initialWindowSize: (_d = (_a = options['grpc-node.flow_control_window']) !== null && _a !== void 0 ? _a : (_c = (_b = http2.getDefaultSettings) === null || _b === void 0 ? void 0 : _b.call(http2)) === null || _c === void 0 ? void 0 : _c.initialWindowSize) !== null && _d !== void 0 ? _d : 65535,
                 }
             };
-            if (options['grpc-node.flow_control_window'] !== undefined) {
-                sessionOptions.settings = {
-                    initialWindowSize: options['grpc-node.flow_control_window']
-                };
-            }
             const session = http2.connect(`${scheme}://${targetPath}`, sessionOptions);
+            // Prepare window size configuration for remoteSettings handler
+            const defaultWin = (_g = (_f = (_e = http2.getDefaultSettings) === null || _e === void 0 ? void 0 : _e.call(http2)) === null || _f === void 0 ? void 0 : _f.initialWindowSize) !== null && _g !== void 0 ? _g : 65535; // 65 535 B
+            const connWin = options['grpc-node.flow_control_window'];
             this.session = session;
             let errorMessage = 'Failed to connect';
             let reportedError = false;
             session.unref();
             session.once('remoteSettings', () => {
+                var _a;
+                // Send WINDOW_UPDATE now to avoid 65 KB start-window stall.
+                if (connWin && connWin > defaultWin) {
+                    try {
+                        // Node ≥ 14.18
+                        session.setLocalWindowSize(connWin);
+                    }
+                    catch (_b) {
+                        // Older Node: bump by the delta
+                        const delta = connWin - ((_a = session.state.localWindowSize) !== null && _a !== void 0 ? _a : defaultWin);
+                        if (delta > 0)
+                            session.incrementWindowSize(delta);
+                    }
+                }
                 session.removeAllListeners();
                 secureConnectResult.socket.removeListener('close', closeHandler);
                 secureConnectResult.socket.removeListener('error', errorHandler);
@@ -18575,8 +19998,8 @@ function createMethodDefinition(method, serviceName, options, fileDescriptors) {
         responseDeserialize: createDeserializer(responseType, options),
         // TODO(murgatroid99): Find a better way to handle this
         originalName: camelCase(method.name),
-        requestType: createMessageDefinition(requestType, fileDescriptors),
-        responseType: createMessageDefinition(responseType, fileDescriptors),
+        requestType: createMessageDefinition(requestType, options, fileDescriptors),
+        responseType: createMessageDefinition(responseType, options, fileDescriptors),
         options: mapMethodOptions(method.parsedOptions),
     };
 }
@@ -18587,12 +20010,14 @@ function createServiceDefinition(service, name, options, fileDescriptors) {
     }
     return def;
 }
-function createMessageDefinition(message, fileDescriptors) {
+function createMessageDefinition(message, options, fileDescriptors) {
     const messageDescriptor = message.toDescriptor('proto3');
     return {
         format: 'Protocol Buffer 3 DescriptorProto',
         type: messageDescriptor.$type.toObject(messageDescriptor, descriptorOptions),
         fileDescriptorProtos: fileDescriptors,
+        serialize: createSerializer(message),
+        deserialize: createDeserializer(message, options)
     };
 }
 function createEnumDefinition(enumType, fileDescriptors) {
@@ -18615,7 +20040,7 @@ function createDefinition(obj, name, options, fileDescriptors) {
         return createServiceDefinition(obj, name, options, fileDescriptors);
     }
     else if (obj instanceof Protobuf.Type) {
-        return createMessageDefinition(obj, fileDescriptors);
+        return createMessageDefinition(obj, options, fileDescriptors);
     }
     else if (obj instanceof Protobuf.Enum) {
         return createEnumDefinition(obj, fileDescriptors);
@@ -95398,7 +96823,7 @@ module.exports = parseParams
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
-/*! Axios v1.11.0 Copyright (c) 2025 Matt Zabriskie and contributors */
+/*! Axios v1.12.2 Copyright (c) 2025 Matt Zabriskie and contributors */
 
 
 const FormData$1 = __nccwpck_require__(96454);
@@ -95477,7 +96902,7 @@ const isUndefined = typeOfTest('undefined');
  */
 function isBuffer(val) {
   return val !== null && !isUndefined(val) && val.constructor !== null && !isUndefined(val.constructor)
-    && isFunction(val.constructor.isBuffer) && val.constructor.isBuffer(val);
+    && isFunction$1(val.constructor.isBuffer) && val.constructor.isBuffer(val);
 }
 
 /**
@@ -95522,7 +96947,7 @@ const isString = typeOfTest('string');
  * @param {*} val The value to test
  * @returns {boolean} True if value is a Function, otherwise false
  */
-const isFunction = typeOfTest('function');
+const isFunction$1 = typeOfTest('function');
 
 /**
  * Determine if a value is a Number
@@ -95578,7 +97003,7 @@ const isEmptyObject = (val) => {
   if (!isObject(val) || isBuffer(val)) {
     return false;
   }
-  
+
   try {
     return Object.keys(val).length === 0 && Object.getPrototypeOf(val) === Object.prototype;
   } catch (e) {
@@ -95630,7 +97055,7 @@ const isFileList = kindOfTest('FileList');
  *
  * @returns {boolean} True if value is a Stream, otherwise false
  */
-const isStream = (val) => isObject(val) && isFunction(val.pipe);
+const isStream = (val) => isObject(val) && isFunction$1(val.pipe);
 
 /**
  * Determine if a value is a FormData
@@ -95643,10 +97068,10 @@ const isFormData = (thing) => {
   let kind;
   return thing && (
     (typeof FormData === 'function' && thing instanceof FormData) || (
-      isFunction(thing.append) && (
+      isFunction$1(thing.append) && (
         (kind = kindOf(thing)) === 'formdata' ||
         // detect form-data instance
-        (kind === 'object' && isFunction(thing.toString) && thing.toString() === '[object FormData]')
+        (kind === 'object' && isFunction$1(thing.toString) && thing.toString() === '[object FormData]')
       )
     )
   )
@@ -95771,7 +97196,7 @@ const isContextDefined = (context) => !isUndefined(context) && context !== _glob
  * @returns {Object} Result of all merge properties
  */
 function merge(/* obj1, obj2, obj3, ... */) {
-  const {caseless} = isContextDefined(this) && this || {};
+  const {caseless, skipUndefined} = isContextDefined(this) && this || {};
   const result = {};
   const assignValue = (val, key) => {
     const targetKey = caseless && findKey(result, key) || key;
@@ -95781,7 +97206,7 @@ function merge(/* obj1, obj2, obj3, ... */) {
       result[targetKey] = merge({}, val);
     } else if (isArray(val)) {
       result[targetKey] = val.slice();
-    } else {
+    } else if (!skipUndefined || !isUndefined(val)) {
       result[targetKey] = val;
     }
   };
@@ -95804,7 +97229,7 @@ function merge(/* obj1, obj2, obj3, ... */) {
  */
 const extend = (a, b, thisArg, {allOwnKeys}= {}) => {
   forEach(b, (val, key) => {
-    if (thisArg && isFunction(val)) {
+    if (thisArg && isFunction$1(val)) {
       a[key] = bind(val, thisArg);
     } else {
       a[key] = val;
@@ -96020,13 +97445,13 @@ const reduceDescriptors = (obj, reducer) => {
 const freezeMethods = (obj) => {
   reduceDescriptors(obj, (descriptor, name) => {
     // skip restricted props in strict mode
-    if (isFunction(obj) && ['arguments', 'caller', 'callee'].indexOf(name) !== -1) {
+    if (isFunction$1(obj) && ['arguments', 'caller', 'callee'].indexOf(name) !== -1) {
       return false;
     }
 
     const value = obj[name];
 
-    if (!isFunction(value)) return;
+    if (!isFunction$1(value)) return;
 
     descriptor.enumerable = false;
 
@@ -96063,6 +97488,8 @@ const toFiniteNumber = (value, defaultValue) => {
   return value != null && Number.isFinite(value = +value) ? value : defaultValue;
 };
 
+
+
 /**
  * If the thing is a FormData object, return true, otherwise return false.
  *
@@ -96071,7 +97498,7 @@ const toFiniteNumber = (value, defaultValue) => {
  * @returns {boolean}
  */
 function isSpecCompliantForm(thing) {
-  return !!(thing && isFunction(thing.append) && thing[toStringTag] === 'FormData' && thing[iterator]);
+  return !!(thing && isFunction$1(thing.append) && thing[toStringTag] === 'FormData' && thing[iterator]);
 }
 
 const toJSONObject = (obj) => {
@@ -96113,7 +97540,7 @@ const toJSONObject = (obj) => {
 const isAsyncFn = kindOfTest('AsyncFunction');
 
 const isThenable = (thing) =>
-  thing && (isObject(thing) || isFunction(thing)) && isFunction(thing.then) && isFunction(thing.catch);
+  thing && (isObject(thing) || isFunction$1(thing)) && isFunction$1(thing.then) && isFunction$1(thing.catch);
 
 // original code
 // https://github.com/DigitalBrainJS/AxiosPromise/blob/16deab13710ec09779922131f3fa5954320f83ab/lib/utils.js#L11-L34
@@ -96137,7 +97564,7 @@ const _setImmediate = ((setImmediateSupported, postMessageSupported) => {
   })(`axios@${Math.random()}`, []) : (cb) => setTimeout(cb);
 })(
   typeof setImmediate === 'function',
-  isFunction(_global.postMessage)
+  isFunction$1(_global.postMessage)
 );
 
 const asap = typeof queueMicrotask !== 'undefined' ?
@@ -96146,7 +97573,7 @@ const asap = typeof queueMicrotask !== 'undefined' ?
 // *********************
 
 
-const isIterable = (thing) => thing != null && isFunction(thing[iterator]);
+const isIterable = (thing) => thing != null && isFunction$1(thing[iterator]);
 
 
 const utils$1 = {
@@ -96170,7 +97597,7 @@ const utils$1 = {
   isFile,
   isBlob,
   isRegExp,
-  isFunction,
+  isFunction: isFunction$1,
   isStream,
   isURLSearchParams,
   isTypedArray,
@@ -96296,11 +97723,18 @@ AxiosError.from = (error, code, config, request, response, customProps) => {
     return prop !== 'isAxiosError';
   });
 
-  AxiosError.call(axiosError, error.message, code, config, request, response);
+  const msg = error && error.message ? error.message : 'Error';
 
-  axiosError.cause = error;
+  // Prefer explicit code; otherwise copy the low-level error's code (e.g. ECONNREFUSED)
+  const errCode = code == null && error ? error.code : code;
+  AxiosError.call(axiosError, msg, errCode, config, request, response);
 
-  axiosError.name = error.name;
+  // Chain the original error on the standard field; non-enumerable to avoid JSON noise
+  if (error && axiosError.cause == null) {
+    Object.defineProperty(axiosError, 'cause', { value: error, configurable: true });
+  }
+
+  axiosError.name = (error && error.name) || 'Error';
 
   customProps && Object.assign(axiosError, customProps);
 
@@ -96588,9 +98022,7 @@ function encode(val) {
     replace(/%3A/gi, ':').
     replace(/%24/g, '$').
     replace(/%2C/gi, ',').
-    replace(/%20/g, '+').
-    replace(/%5B/gi, '[').
-    replace(/%5D/gi, ']');
+    replace(/%20/g, '+');
 }
 
 /**
@@ -97016,7 +98448,7 @@ const defaults = {
       const strictJSONParsing = !silentJSONParsing && JSONRequested;
 
       try {
-        return JSON.parse(data);
+        return JSON.parse(data, this.parseReviver);
       } catch (e) {
         if (strictJSONParsing) {
           if (e.name === 'SyntaxError') {
@@ -97543,7 +98975,7 @@ function buildFullPath(baseURL, requestedURL, allowAbsoluteUrls) {
   return requestedURL;
 }
 
-const VERSION = "1.11.0";
+const VERSION = "1.12.2";
 
 function parseProtocol(url) {
   const match = /^([-+\w]{1,25})(:?\/\/|:)/.exec(url);
@@ -98036,6 +99468,80 @@ const progressEventDecorator = (total, throttled) => {
 
 const asyncDecorator = (fn) => (...args) => utils$1.asap(() => fn(...args));
 
+/**
+ * Estimate decoded byte length of a data:// URL *without* allocating large buffers.
+ * - For base64: compute exact decoded size using length and padding;
+ *               handle %XX at the character-count level (no string allocation).
+ * - For non-base64: use UTF-8 byteLength of the encoded body as a safe upper bound.
+ *
+ * @param {string} url
+ * @returns {number}
+ */
+function estimateDataURLDecodedBytes(url) {
+  if (!url || typeof url !== 'string') return 0;
+  if (!url.startsWith('data:')) return 0;
+
+  const comma = url.indexOf(',');
+  if (comma < 0) return 0;
+
+  const meta = url.slice(5, comma);
+  const body = url.slice(comma + 1);
+  const isBase64 = /;base64/i.test(meta);
+
+  if (isBase64) {
+    let effectiveLen = body.length;
+    const len = body.length; // cache length
+
+    for (let i = 0; i < len; i++) {
+      if (body.charCodeAt(i) === 37 /* '%' */ && i + 2 < len) {
+        const a = body.charCodeAt(i + 1);
+        const b = body.charCodeAt(i + 2);
+        const isHex =
+          ((a >= 48 && a <= 57) || (a >= 65 && a <= 70) || (a >= 97 && a <= 102)) &&
+          ((b >= 48 && b <= 57) || (b >= 65 && b <= 70) || (b >= 97 && b <= 102));
+
+        if (isHex) {
+          effectiveLen -= 2;
+          i += 2;
+        }
+      }
+    }
+
+    let pad = 0;
+    let idx = len - 1;
+
+    const tailIsPct3D = (j) =>
+      j >= 2 &&
+      body.charCodeAt(j - 2) === 37 && // '%'
+      body.charCodeAt(j - 1) === 51 && // '3'
+      (body.charCodeAt(j) === 68 || body.charCodeAt(j) === 100); // 'D' or 'd'
+
+    if (idx >= 0) {
+      if (body.charCodeAt(idx) === 61 /* '=' */) {
+        pad++;
+        idx--;
+      } else if (tailIsPct3D(idx)) {
+        pad++;
+        idx -= 3;
+      }
+    }
+
+    if (pad === 1 && idx >= 0) {
+      if (body.charCodeAt(idx) === 61 /* '=' */) {
+        pad++;
+      } else if (tailIsPct3D(idx)) {
+        pad++;
+      }
+    }
+
+    const groups = Math.floor(effectiveLen / 4);
+    const bytes = groups * 3 - (pad || 0);
+    return bytes > 0 ? bytes : 0;
+  }
+
+  return Buffer.byteLength(body, 'utf8');
+}
+
 const zlibOptions = {
   flush: zlib__default["default"].constants.Z_SYNC_FLUSH,
   finishFlush: zlib__default["default"].constants.Z_SYNC_FLUSH
@@ -98056,6 +99562,7 @@ const supportedProtocols = platform.protocols.map(protocol => {
   return protocol + ':';
 });
 
+
 const flushOnFinish = (stream, [throttled, flush]) => {
   stream
     .on('end', flush)
@@ -98063,6 +99570,7 @@ const flushOnFinish = (stream, [throttled, flush]) => {
 
   return throttled;
 };
+
 
 /**
  * If the proxy or config beforeRedirects functions are defined, call them with the options
@@ -98243,6 +99751,21 @@ const httpAdapter = isHttpAdapterSupported && function httpAdapter(config) {
     const protocol = parsed.protocol || supportedProtocols[0];
 
     if (protocol === 'data:') {
+      // Apply the same semantics as HTTP: only enforce if a finite, non-negative cap is set.
+      if (config.maxContentLength > -1) {
+        // Use the exact string passed to fromDataURI (config.url); fall back to fullPath if needed.
+        const dataUrl = String(config.url || fullPath || '');
+        const estimated = estimateDataURLDecodedBytes(dataUrl);
+
+        if (estimated > config.maxContentLength) {
+          return reject(new AxiosError(
+            'maxContentLength size of ' + config.maxContentLength + ' exceeded',
+            AxiosError.ERR_BAD_RESPONSE,
+            config
+          ));
+        }
+      }
+
       let convertedData;
 
       if (method !== 'GET') {
@@ -98857,7 +100380,7 @@ function mergeConfig(config1, config2) {
 const resolveConfig = (config) => {
   const newConfig = mergeConfig({}, config);
 
-  let {data, withXSRFToken, xsrfHeaderName, xsrfCookieName, headers, auth} = newConfig;
+  let { data, withXSRFToken, xsrfHeaderName, xsrfCookieName, headers, auth } = newConfig;
 
   newConfig.headers = headers = AxiosHeaders$1.from(headers);
 
@@ -98870,17 +100393,21 @@ const resolveConfig = (config) => {
     );
   }
 
-  let contentType;
-
   if (utils$1.isFormData(data)) {
     if (platform.hasStandardBrowserEnv || platform.hasStandardBrowserWebWorkerEnv) {
-      headers.setContentType(undefined); // Let the browser set it
-    } else if ((contentType = headers.getContentType()) !== false) {
-      // fix semicolon duplication issue for ReactNative FormData implementation
-      const [type, ...tokens] = contentType ? contentType.split(';').map(token => token.trim()).filter(Boolean) : [];
-      headers.setContentType([type || 'multipart/form-data', ...tokens].join('; '));
+      headers.setContentType(undefined); // browser handles it
+    } else if (utils$1.isFunction(data.getHeaders)) {
+      // Node.js FormData (like form-data package)
+      const formHeaders = data.getHeaders();
+      // Only set safe headers to avoid overwriting security headers
+      const allowedHeaders = ['content-type', 'content-length'];
+      Object.entries(formHeaders).forEach(([key, val]) => {
+        if (allowedHeaders.includes(key.toLowerCase())) {
+          headers.set(key, val);
+        }
+      });
     }
-  }
+  }  
 
   // Add xsrf header
   // This is only done if running in a standard browser environment.
@@ -98997,15 +100524,18 @@ const xhrAdapter = isXHRAdapterSupported && function (config) {
     };
 
     // Handle low level network errors
-    request.onerror = function handleError() {
-      // Real errors are hidden from us by the browser
-      // onerror should only fire if it's a network error
-      reject(new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request));
-
-      // Clean up request
-      request = null;
+  request.onerror = function handleError(event) {
+       // Browsers deliver a ProgressEvent in XHR onerror
+       // (message may be empty; when present, surface it)
+       // See https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/error_event
+       const msg = event && event.message ? event.message : 'Network Error';
+       const err = new AxiosError(msg, AxiosError.ERR_NETWORK, config, request);
+       // attach the underlying event for consumers who want details
+       err.event = event || null;
+       reject(err);
+       request = null;
     };
-
+    
     // Handle timeout
     request.ontimeout = function handleTimeout() {
       let timeoutErrorMessage = _config.timeout ? 'timeout of ' + _config.timeout + 'ms exceeded' : 'timeout exceeded';
@@ -99221,14 +100751,18 @@ const trackStream = (stream, chunkSize, onProgress, onFinish) => {
   })
 };
 
-const isFetchSupported = typeof fetch === 'function' && typeof Request === 'function' && typeof Response === 'function';
-const isReadableStreamSupported = isFetchSupported && typeof ReadableStream === 'function';
+const DEFAULT_CHUNK_SIZE = 64 * 1024;
 
-// used only inside the fetch adapter
-const encodeText = isFetchSupported && (typeof TextEncoder === 'function' ?
-    ((encoder) => (str) => encoder.encode(str))(new TextEncoder()) :
-    async (str) => new Uint8Array(await new Response(str).arrayBuffer())
-);
+const {isFunction} = utils$1;
+
+const globalFetchAPI = (({Request, Response}) => ({
+  Request, Response
+}))(utils$1.global);
+
+const {
+  ReadableStream: ReadableStream$1, TextEncoder: TextEncoder$1
+} = utils$1.global;
+
 
 const test = (fn, ...args) => {
   try {
@@ -99238,211 +100772,268 @@ const test = (fn, ...args) => {
   }
 };
 
-const supportsRequestStream = isReadableStreamSupported && test(() => {
-  let duplexAccessed = false;
+const factory = (env) => {
+  env = utils$1.merge.call({
+    skipUndefined: true
+  }, globalFetchAPI, env);
 
-  const hasContentType = new Request(platform.origin, {
-    body: new ReadableStream(),
-    method: 'POST',
-    get duplex() {
-      duplexAccessed = true;
-      return 'half';
-    },
-  }).headers.has('Content-Type');
+  const {fetch: envFetch, Request, Response} = env;
+  const isFetchSupported = envFetch ? isFunction(envFetch) : typeof fetch === 'function';
+  const isRequestSupported = isFunction(Request);
+  const isResponseSupported = isFunction(Response);
 
-  return duplexAccessed && !hasContentType;
-});
+  if (!isFetchSupported) {
+    return false;
+  }
 
-const DEFAULT_CHUNK_SIZE = 64 * 1024;
+  const isReadableStreamSupported = isFetchSupported && isFunction(ReadableStream$1);
 
-const supportsResponseStream = isReadableStreamSupported &&
-  test(() => utils$1.isReadableStream(new Response('').body));
+  const encodeText = isFetchSupported && (typeof TextEncoder$1 === 'function' ?
+      ((encoder) => (str) => encoder.encode(str))(new TextEncoder$1()) :
+      async (str) => new Uint8Array(await new Request(str).arrayBuffer())
+  );
 
+  const supportsRequestStream = isRequestSupported && isReadableStreamSupported && test(() => {
+    let duplexAccessed = false;
 
-const resolvers = {
-  stream: supportsResponseStream && ((res) => res.body)
-};
+    const hasContentType = new Request(platform.origin, {
+      body: new ReadableStream$1(),
+      method: 'POST',
+      get duplex() {
+        duplexAccessed = true;
+        return 'half';
+      },
+    }).headers.has('Content-Type');
 
-isFetchSupported && (((res) => {
-  ['text', 'arrayBuffer', 'blob', 'formData', 'stream'].forEach(type => {
-    !resolvers[type] && (resolvers[type] = utils$1.isFunction(res[type]) ? (res) => res[type]() :
-      (_, config) => {
+    return duplexAccessed && !hasContentType;
+  });
+
+  const supportsResponseStream = isResponseSupported && isReadableStreamSupported &&
+    test(() => utils$1.isReadableStream(new Response('').body));
+
+  const resolvers = {
+    stream: supportsResponseStream && ((res) => res.body)
+  };
+
+  isFetchSupported && ((() => {
+    ['text', 'arrayBuffer', 'blob', 'formData', 'stream'].forEach(type => {
+      !resolvers[type] && (resolvers[type] = (res, config) => {
+        let method = res && res[type];
+
+        if (method) {
+          return method.call(res);
+        }
+
         throw new AxiosError(`Response type '${type}' is not supported`, AxiosError.ERR_NOT_SUPPORT, config);
       });
-  });
-})(new Response));
-
-const getBodyLength = async (body) => {
-  if (body == null) {
-    return 0;
-  }
-
-  if(utils$1.isBlob(body)) {
-    return body.size;
-  }
-
-  if(utils$1.isSpecCompliantForm(body)) {
-    const _request = new Request(platform.origin, {
-      method: 'POST',
-      body,
     });
-    return (await _request.arrayBuffer()).byteLength;
-  }
+  })());
 
-  if(utils$1.isArrayBufferView(body) || utils$1.isArrayBuffer(body)) {
-    return body.byteLength;
-  }
+  const getBodyLength = async (body) => {
+    if (body == null) {
+      return 0;
+    }
 
-  if(utils$1.isURLSearchParams(body)) {
-    body = body + '';
-  }
+    if (utils$1.isBlob(body)) {
+      return body.size;
+    }
 
-  if(utils$1.isString(body)) {
-    return (await encodeText(body)).byteLength;
-  }
-};
-
-const resolveBodyLength = async (headers, body) => {
-  const length = utils$1.toFiniteNumber(headers.getContentLength());
-
-  return length == null ? getBodyLength(body) : length;
-};
-
-const fetchAdapter = isFetchSupported && (async (config) => {
-  let {
-    url,
-    method,
-    data,
-    signal,
-    cancelToken,
-    timeout,
-    onDownloadProgress,
-    onUploadProgress,
-    responseType,
-    headers,
-    withCredentials = 'same-origin',
-    fetchOptions
-  } = resolveConfig(config);
-
-  responseType = responseType ? (responseType + '').toLowerCase() : 'text';
-
-  let composedSignal = composeSignals$1([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
-
-  let request;
-
-  const unsubscribe = composedSignal && composedSignal.unsubscribe && (() => {
-      composedSignal.unsubscribe();
-  });
-
-  let requestContentLength;
-
-  try {
-    if (
-      onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head' &&
-      (requestContentLength = await resolveBodyLength(headers, data)) !== 0
-    ) {
-      let _request = new Request(url, {
+    if (utils$1.isSpecCompliantForm(body)) {
+      const _request = new Request(platform.origin, {
         method: 'POST',
-        body: data,
-        duplex: "half"
+        body,
       });
-
-      let contentTypeHeader;
-
-      if (utils$1.isFormData(data) && (contentTypeHeader = _request.headers.get('content-type'))) {
-        headers.setContentType(contentTypeHeader);
-      }
-
-      if (_request.body) {
-        const [onProgress, flush] = progressEventDecorator(
-          requestContentLength,
-          progressEventReducer(asyncDecorator(onUploadProgress))
-        );
-
-        data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
-      }
+      return (await _request.arrayBuffer()).byteLength;
     }
 
-    if (!utils$1.isString(withCredentials)) {
-      withCredentials = withCredentials ? 'include' : 'omit';
+    if (utils$1.isArrayBufferView(body) || utils$1.isArrayBuffer(body)) {
+      return body.byteLength;
     }
 
-    // Cloudflare Workers throws when credentials are defined
-    // see https://github.com/cloudflare/workerd/issues/902
-    const isCredentialsSupported = "credentials" in Request.prototype;
-    request = new Request(url, {
-      ...fetchOptions,
-      signal: composedSignal,
-      method: method.toUpperCase(),
-      headers: headers.normalize().toJSON(),
-      body: data,
-      duplex: "half",
-      credentials: isCredentialsSupported ? withCredentials : undefined
+    if (utils$1.isURLSearchParams(body)) {
+      body = body + '';
+    }
+
+    if (utils$1.isString(body)) {
+      return (await encodeText(body)).byteLength;
+    }
+  };
+
+  const resolveBodyLength = async (headers, body) => {
+    const length = utils$1.toFiniteNumber(headers.getContentLength());
+
+    return length == null ? getBodyLength(body) : length;
+  };
+
+  return async (config) => {
+    let {
+      url,
+      method,
+      data,
+      signal,
+      cancelToken,
+      timeout,
+      onDownloadProgress,
+      onUploadProgress,
+      responseType,
+      headers,
+      withCredentials = 'same-origin',
+      fetchOptions
+    } = resolveConfig(config);
+
+    let _fetch = envFetch || fetch;
+
+    responseType = responseType ? (responseType + '').toLowerCase() : 'text';
+
+    let composedSignal = composeSignals$1([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
+
+    let request = null;
+
+    const unsubscribe = composedSignal && composedSignal.unsubscribe && (() => {
+      composedSignal.unsubscribe();
     });
 
-    let response = await fetch(request, fetchOptions);
+    let requestContentLength;
 
-    const isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
+    try {
+      if (
+        onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head' &&
+        (requestContentLength = await resolveBodyLength(headers, data)) !== 0
+      ) {
+        let _request = new Request(url, {
+          method: 'POST',
+          body: data,
+          duplex: "half"
+        });
 
-    if (supportsResponseStream && (onDownloadProgress || (isStreamResponse && unsubscribe))) {
-      const options = {};
+        let contentTypeHeader;
 
-      ['status', 'statusText', 'headers'].forEach(prop => {
-        options[prop] = response[prop];
-      });
-
-      const responseContentLength = utils$1.toFiniteNumber(response.headers.get('content-length'));
-
-      const [onProgress, flush] = onDownloadProgress && progressEventDecorator(
-        responseContentLength,
-        progressEventReducer(asyncDecorator(onDownloadProgress), true)
-      ) || [];
-
-      response = new Response(
-        trackStream(response.body, DEFAULT_CHUNK_SIZE, onProgress, () => {
-          flush && flush();
-          unsubscribe && unsubscribe();
-        }),
-        options
-      );
-    }
-
-    responseType = responseType || 'text';
-
-    let responseData = await resolvers[utils$1.findKey(resolvers, responseType) || 'text'](response, config);
-
-    !isStreamResponse && unsubscribe && unsubscribe();
-
-    return await new Promise((resolve, reject) => {
-      settle(resolve, reject, {
-        data: responseData,
-        headers: AxiosHeaders$1.from(response.headers),
-        status: response.status,
-        statusText: response.statusText,
-        config,
-        request
-      });
-    })
-  } catch (err) {
-    unsubscribe && unsubscribe();
-
-    if (err && err.name === 'TypeError' && /Load failed|fetch/i.test(err.message)) {
-      throw Object.assign(
-        new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request),
-        {
-          cause: err.cause || err
+        if (utils$1.isFormData(data) && (contentTypeHeader = _request.headers.get('content-type'))) {
+          headers.setContentType(contentTypeHeader);
         }
-      )
-    }
 
-    throw AxiosError.from(err, err && err.code, config, request);
+        if (_request.body) {
+          const [onProgress, flush] = progressEventDecorator(
+            requestContentLength,
+            progressEventReducer(asyncDecorator(onUploadProgress))
+          );
+
+          data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
+        }
+      }
+
+      if (!utils$1.isString(withCredentials)) {
+        withCredentials = withCredentials ? 'include' : 'omit';
+      }
+
+      // Cloudflare Workers throws when credentials are defined
+      // see https://github.com/cloudflare/workerd/issues/902
+      const isCredentialsSupported = isRequestSupported && "credentials" in Request.prototype;
+
+      const resolvedOptions = {
+        ...fetchOptions,
+        signal: composedSignal,
+        method: method.toUpperCase(),
+        headers: headers.normalize().toJSON(),
+        body: data,
+        duplex: "half",
+        credentials: isCredentialsSupported ? withCredentials : undefined
+      };
+
+      request = isRequestSupported && new Request(url, resolvedOptions);
+
+      let response = await (isRequestSupported ? _fetch(request, fetchOptions) : _fetch(url, resolvedOptions));
+
+      const isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
+
+      if (supportsResponseStream && (onDownloadProgress || (isStreamResponse && unsubscribe))) {
+        const options = {};
+
+        ['status', 'statusText', 'headers'].forEach(prop => {
+          options[prop] = response[prop];
+        });
+
+        const responseContentLength = utils$1.toFiniteNumber(response.headers.get('content-length'));
+
+        const [onProgress, flush] = onDownloadProgress && progressEventDecorator(
+          responseContentLength,
+          progressEventReducer(asyncDecorator(onDownloadProgress), true)
+        ) || [];
+
+        response = new Response(
+          trackStream(response.body, DEFAULT_CHUNK_SIZE, onProgress, () => {
+            flush && flush();
+            unsubscribe && unsubscribe();
+          }),
+          options
+        );
+      }
+
+      responseType = responseType || 'text';
+
+      let responseData = await resolvers[utils$1.findKey(resolvers, responseType) || 'text'](response, config);
+
+      !isStreamResponse && unsubscribe && unsubscribe();
+
+      return await new Promise((resolve, reject) => {
+        settle(resolve, reject, {
+          data: responseData,
+          headers: AxiosHeaders$1.from(response.headers),
+          status: response.status,
+          statusText: response.statusText,
+          config,
+          request
+        });
+      })
+    } catch (err) {
+      unsubscribe && unsubscribe();
+
+      if (err && err.name === 'TypeError' && /Load failed|fetch/i.test(err.message)) {
+        throw Object.assign(
+          new AxiosError('Network Error', AxiosError.ERR_NETWORK, config, request),
+          {
+            cause: err.cause || err
+          }
+        )
+      }
+
+      throw AxiosError.from(err, err && err.code, config, request);
+    }
   }
-});
+};
+
+const seedCache = new Map();
+
+const getFetch = (config) => {
+  let env = config ? config.env : {};
+  const {fetch, Request, Response} = env;
+  const seeds = [
+    Request, Response, fetch
+  ];
+
+  let len = seeds.length, i = len,
+    seed, target, map = seedCache;
+
+  while (i--) {
+    seed = seeds[i];
+    target = map.get(seed);
+
+    target === undefined && map.set(seed, target = (i ? new Map() : factory(env)));
+
+    map = target;
+  }
+
+  return target;
+};
+
+getFetch();
 
 const knownAdapters = {
   http: httpAdapter,
   xhr: xhrAdapter,
-  fetch: fetchAdapter
+  fetch: {
+    get: getFetch,
+  }
 };
 
 utils$1.forEach(knownAdapters, (fn, value) => {
@@ -99461,7 +101052,7 @@ const renderReason = (reason) => `- ${reason}`;
 const isResolvedHandle = (adapter) => utils$1.isFunction(adapter) || adapter === null || adapter === false;
 
 const adapters = {
-  getAdapter: (adapters) => {
+  getAdapter: (adapters, config) => {
     adapters = utils$1.isArray(adapters) ? adapters : [adapters];
 
     const {length} = adapters;
@@ -99484,7 +101075,7 @@ const adapters = {
         }
       }
 
-      if (adapter) {
+      if (adapter && (utils$1.isFunction(adapter) || (adapter = adapter.get(config)))) {
         break;
       }
 
@@ -99552,7 +101143,7 @@ function dispatchRequest(config) {
     config.headers.setContentType('application/x-www-form-urlencoded', false);
   }
 
-  const adapter = adapters.getAdapter(config.adapter || defaults$1.adapter);
+  const adapter = adapters.getAdapter(config.adapter || defaults$1.adapter, config);
 
   return adapter(config).then(function onAdapterResolution(response) {
     throwIfCancellationRequested(config);
@@ -99839,8 +101430,6 @@ class Axios {
     len = requestInterceptorChain.length;
 
     let newConfig = config;
-
-    i = 0;
 
     while (i < len) {
       const onFulfilled = requestInterceptorChain[i++];
@@ -100230,7 +101819,7 @@ module.exports = axios;
 /***/ ((module) => {
 
 "use strict";
-module.exports = {"rE":"1.13.4"};
+module.exports = {"rE":"1.14.0"};
 
 /***/ }),
 
@@ -100536,7 +102125,7 @@ const isEmptyObject = (val) => {
   if (!isObject(val) || isBuffer(val)) {
     return false;
   }
-  
+
   try {
     return Object.keys(val).length === 0 && Object.getPrototypeOf(val) === Object.prototype;
   } catch (e) {
@@ -100729,7 +102318,7 @@ const isContextDefined = (context) => !isUndefined(context) && context !== _glob
  * @returns {Object} Result of all merge properties
  */
 function merge(/* obj1, obj2, obj3, ... */) {
-  const {caseless} = isContextDefined(this) && this || {};
+  const {caseless, skipUndefined} = isContextDefined(this) && this || {};
   const result = {};
   const assignValue = (val, key) => {
     const targetKey = caseless && findKey(result, key) || key;
@@ -100739,7 +102328,7 @@ function merge(/* obj1, obj2, obj3, ... */) {
       result[targetKey] = merge({}, val);
     } else if (isArray(val)) {
       result[targetKey] = val.slice();
-    } else {
+    } else if (!skipUndefined || !isUndefined(val)) {
       result[targetKey] = val;
     }
   }
@@ -101021,6 +102610,8 @@ const toFiniteNumber = (value, defaultValue) => {
   return value != null && Number.isFinite(value = +value) ? value : defaultValue;
 }
 
+
+
 /**
  * If the thing is a FormData object, return true, otherwise return false.
  *
@@ -101259,11 +102850,18 @@ AxiosError.from = (error, code, config, request, response, customProps) => {
     return prop !== 'isAxiosError';
   });
 
-  AxiosError.call(axiosError, error.message, code, config, request, response);
+  const msg = error && error.message ? error.message : 'Error';
 
-  axiosError.cause = error;
+  // Prefer explicit code; otherwise copy the low-level error's code (e.g. ECONNREFUSED)
+  const errCode = code == null && error ? error.code : code;
+  AxiosError.call(axiosError, msg, errCode, config, request, response);
 
-  axiosError.name = error.name;
+  // Chain the original error on the standard field; non-enumerable to avoid JSON noise
+  if (error && axiosError.cause == null) {
+    Object.defineProperty(axiosError, 'cause', { value: error, configurable: true });
+  }
+
+  axiosError.name = (error && error.name) || 'Error';
 
   customProps && Object.assign(axiosError, customProps);
 
@@ -101583,9 +103181,7 @@ function buildURL_encode(val) {
     replace(/%3A/gi, ':').
     replace(/%24/g, '$').
     replace(/%2C/gi, ',').
-    replace(/%20/g, '+').
-    replace(/%5B/gi, '[').
-    replace(/%5D/gi, ']');
+    replace(/%20/g, '+');
 }
 
 /**
@@ -102055,7 +103651,7 @@ const defaults = {
       const strictJSONParsing = !silentJSONParsing && JSONRequested;
 
       try {
-        return JSON.parse(data);
+        return JSON.parse(data, this.parseReviver);
       } catch (e) {
         if (strictJSONParsing) {
           if (e.name === 'SyntaxError') {
@@ -102641,7 +104237,7 @@ var follow_redirects = __nccwpck_require__(1573);
 // EXTERNAL MODULE: external "zlib"
 var external_zlib_ = __nccwpck_require__(43106);
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/env/data.js
-const VERSION = "1.11.0";
+const VERSION = "1.12.2";
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/helpers/parseProtocol.js
 
 
@@ -103182,7 +104778,83 @@ const progressEventDecorator = (total, throttled) => {
 
 const asyncDecorator = (fn) => (...args) => utils.asap(() => fn(...args));
 
+;// CONCATENATED MODULE: ./node_modules/axios/lib/helpers/estimateDataURLDecodedBytes.js
+/**
+ * Estimate decoded byte length of a data:// URL *without* allocating large buffers.
+ * - For base64: compute exact decoded size using length and padding;
+ *               handle %XX at the character-count level (no string allocation).
+ * - For non-base64: use UTF-8 byteLength of the encoded body as a safe upper bound.
+ *
+ * @param {string} url
+ * @returns {number}
+ */
+function estimateDataURLDecodedBytes(url) {
+  if (!url || typeof url !== 'string') return 0;
+  if (!url.startsWith('data:')) return 0;
+
+  const comma = url.indexOf(',');
+  if (comma < 0) return 0;
+
+  const meta = url.slice(5, comma);
+  const body = url.slice(comma + 1);
+  const isBase64 = /;base64/i.test(meta);
+
+  if (isBase64) {
+    let effectiveLen = body.length;
+    const len = body.length; // cache length
+
+    for (let i = 0; i < len; i++) {
+      if (body.charCodeAt(i) === 37 /* '%' */ && i + 2 < len) {
+        const a = body.charCodeAt(i + 1);
+        const b = body.charCodeAt(i + 2);
+        const isHex =
+          ((a >= 48 && a <= 57) || (a >= 65 && a <= 70) || (a >= 97 && a <= 102)) &&
+          ((b >= 48 && b <= 57) || (b >= 65 && b <= 70) || (b >= 97 && b <= 102));
+
+        if (isHex) {
+          effectiveLen -= 2;
+          i += 2;
+        }
+      }
+    }
+
+    let pad = 0;
+    let idx = len - 1;
+
+    const tailIsPct3D = (j) =>
+      j >= 2 &&
+      body.charCodeAt(j - 2) === 37 && // '%'
+      body.charCodeAt(j - 1) === 51 && // '3'
+      (body.charCodeAt(j) === 68 || body.charCodeAt(j) === 100); // 'D' or 'd'
+
+    if (idx >= 0) {
+      if (body.charCodeAt(idx) === 61 /* '=' */) {
+        pad++;
+        idx--;
+      } else if (tailIsPct3D(idx)) {
+        pad++;
+        idx -= 3;
+      }
+    }
+
+    if (pad === 1 && idx >= 0) {
+      if (body.charCodeAt(idx) === 61 /* '=' */) {
+        pad++;
+      } else if (tailIsPct3D(idx)) {
+        pad++;
+      }
+    }
+
+    const groups = Math.floor(effectiveLen / 4);
+    const bytes = groups * 3 - (pad || 0);
+    return bytes > 0 ? bytes : 0;
+  }
+
+  return Buffer.byteLength(body, 'utf8');
+}
+
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/adapters/http.js
+
 
 
 
@@ -103231,6 +104903,7 @@ const supportedProtocols = platform.protocols.map(protocol => {
   return protocol + ':';
 });
 
+
 const flushOnFinish = (stream, [throttled, flush]) => {
   stream
     .on('end', flush)
@@ -103238,6 +104911,7 @@ const flushOnFinish = (stream, [throttled, flush]) => {
 
   return throttled;
 }
+
 
 /**
  * If the proxy or config beforeRedirects functions are defined, call them with the options
@@ -103418,6 +105092,21 @@ const buildAddressEntry = (address, family) => resolveFamily(utils.isObject(addr
     const protocol = parsed.protocol || supportedProtocols[0];
 
     if (protocol === 'data:') {
+      // Apply the same semantics as HTTP: only enforce if a finite, non-negative cap is set.
+      if (config.maxContentLength > -1) {
+        // Use the exact string passed to fromDataURI (config.url); fall back to fullPath if needed.
+        const dataUrl = String(config.url || fullPath || '');
+        const estimated = estimateDataURLDecodedBytes(dataUrl);
+
+        if (estimated > config.maxContentLength) {
+          return reject(new core_AxiosError(
+            'maxContentLength size of ' + config.maxContentLength + ' exceeded',
+            core_AxiosError.ERR_BAD_RESPONSE,
+            config
+          ));
+        }
+      }
+
       let convertedData;
 
       if (method !== 'GET') {
@@ -104060,7 +105749,7 @@ function mergeConfig(config1, config2) {
 /* harmony default export */ const resolveConfig = ((config) => {
   const newConfig = mergeConfig({}, config);
 
-  let {data, withXSRFToken, xsrfHeaderName, xsrfCookieName, headers, auth} = newConfig;
+  let { data, withXSRFToken, xsrfHeaderName, xsrfCookieName, headers, auth } = newConfig;
 
   newConfig.headers = headers = core_AxiosHeaders.from(headers);
 
@@ -104073,17 +105762,21 @@ function mergeConfig(config1, config2) {
     );
   }
 
-  let contentType;
-
   if (utils.isFormData(data)) {
     if (platform.hasStandardBrowserEnv || platform.hasStandardBrowserWebWorkerEnv) {
-      headers.setContentType(undefined); // Let the browser set it
-    } else if ((contentType = headers.getContentType()) !== false) {
-      // fix semicolon duplication issue for ReactNative FormData implementation
-      const [type, ...tokens] = contentType ? contentType.split(';').map(token => token.trim()).filter(Boolean) : [];
-      headers.setContentType([type || 'multipart/form-data', ...tokens].join('; '));
+      headers.setContentType(undefined); // browser handles it
+    } else if (utils.isFunction(data.getHeaders)) {
+      // Node.js FormData (like form-data package)
+      const formHeaders = data.getHeaders();
+      // Only set safe headers to avoid overwriting security headers
+      const allowedHeaders = ['content-type', 'content-length'];
+      Object.entries(formHeaders).forEach(([key, val]) => {
+        if (allowedHeaders.includes(key.toLowerCase())) {
+          headers.set(key, val);
+        }
+      });
     }
-  }
+  }  
 
   // Add xsrf header
   // This is only done if running in a standard browser environment.
@@ -104213,15 +105906,18 @@ const isXHRAdapterSupported = typeof XMLHttpRequest !== 'undefined';
     };
 
     // Handle low level network errors
-    request.onerror = function handleError() {
-      // Real errors are hidden from us by the browser
-      // onerror should only fire if it's a network error
-      reject(new core_AxiosError('Network Error', core_AxiosError.ERR_NETWORK, config, request));
-
-      // Clean up request
-      request = null;
+  request.onerror = function handleError(event) {
+       // Browsers deliver a ProgressEvent in XHR onerror
+       // (message may be empty; when present, surface it)
+       // See https://developer.mozilla.org/docs/Web/API/XMLHttpRequest/error_event
+       const msg = event && event.message ? event.message : 'Network Error';
+       const err = new core_AxiosError(msg, core_AxiosError.ERR_NETWORK, config, request);
+       // attach the underlying event for consumers who want details
+       err.event = event || null;
+       reject(err);
+       request = null;
     };
-
+    
     // Handle timeout
     request.ontimeout = function handleTimeout() {
       let timeoutErrorMessage = _config.timeout ? 'timeout of ' + _config.timeout + 'ms exceeded' : 'timeout exceeded';
@@ -104455,14 +106151,18 @@ const trackStream = (stream, chunkSize, onProgress, onFinish) => {
 
 
 
-const isFetchSupported = typeof fetch === 'function' && typeof Request === 'function' && typeof Response === 'function';
-const isReadableStreamSupported = isFetchSupported && typeof ReadableStream === 'function';
+const DEFAULT_CHUNK_SIZE = 64 * 1024;
 
-// used only inside the fetch adapter
-const encodeText = isFetchSupported && (typeof TextEncoder === 'function' ?
-    ((encoder) => (str) => encoder.encode(str))(new TextEncoder()) :
-    async (str) => new Uint8Array(await new Response(str).arrayBuffer())
-);
+const {isFunction: fetch_isFunction} = utils;
+
+const globalFetchAPI = (({Request, Response}) => ({
+  Request, Response
+}))(utils.global);
+
+const {
+  ReadableStream: fetch_ReadableStream, TextEncoder: fetch_TextEncoder
+} = utils.global;
+
 
 const test = (fn, ...args) => {
   try {
@@ -104472,208 +106172,263 @@ const test = (fn, ...args) => {
   }
 }
 
-const supportsRequestStream = isReadableStreamSupported && test(() => {
-  let duplexAccessed = false;
+const factory = (env) => {
+  env = utils.merge.call({
+    skipUndefined: true
+  }, globalFetchAPI, env);
 
-  const hasContentType = new Request(platform.origin, {
-    body: new ReadableStream(),
-    method: 'POST',
-    get duplex() {
-      duplexAccessed = true;
-      return 'half';
-    },
-  }).headers.has('Content-Type');
+  const {fetch: envFetch, Request, Response} = env;
+  const isFetchSupported = envFetch ? fetch_isFunction(envFetch) : typeof fetch === 'function';
+  const isRequestSupported = fetch_isFunction(Request);
+  const isResponseSupported = fetch_isFunction(Response);
 
-  return duplexAccessed && !hasContentType;
-});
+  if (!isFetchSupported) {
+    return false;
+  }
 
-const DEFAULT_CHUNK_SIZE = 64 * 1024;
+  const isReadableStreamSupported = isFetchSupported && fetch_isFunction(fetch_ReadableStream);
 
-const supportsResponseStream = isReadableStreamSupported &&
-  test(() => utils.isReadableStream(new Response('').body));
+  const encodeText = isFetchSupported && (typeof fetch_TextEncoder === 'function' ?
+      ((encoder) => (str) => encoder.encode(str))(new fetch_TextEncoder()) :
+      async (str) => new Uint8Array(await new Request(str).arrayBuffer())
+  );
 
+  const supportsRequestStream = isRequestSupported && isReadableStreamSupported && test(() => {
+    let duplexAccessed = false;
 
-const resolvers = {
-  stream: supportsResponseStream && ((res) => res.body)
-};
+    const hasContentType = new Request(platform.origin, {
+      body: new fetch_ReadableStream(),
+      method: 'POST',
+      get duplex() {
+        duplexAccessed = true;
+        return 'half';
+      },
+    }).headers.has('Content-Type');
 
-isFetchSupported && (((res) => {
-  ['text', 'arrayBuffer', 'blob', 'formData', 'stream'].forEach(type => {
-    !resolvers[type] && (resolvers[type] = utils.isFunction(res[type]) ? (res) => res[type]() :
-      (_, config) => {
+    return duplexAccessed && !hasContentType;
+  });
+
+  const supportsResponseStream = isResponseSupported && isReadableStreamSupported &&
+    test(() => utils.isReadableStream(new Response('').body));
+
+  const resolvers = {
+    stream: supportsResponseStream && ((res) => res.body)
+  };
+
+  isFetchSupported && ((() => {
+    ['text', 'arrayBuffer', 'blob', 'formData', 'stream'].forEach(type => {
+      !resolvers[type] && (resolvers[type] = (res, config) => {
+        let method = res && res[type];
+
+        if (method) {
+          return method.call(res);
+        }
+
         throw new core_AxiosError(`Response type '${type}' is not supported`, core_AxiosError.ERR_NOT_SUPPORT, config);
       })
-  });
-})(new Response));
-
-const getBodyLength = async (body) => {
-  if (body == null) {
-    return 0;
-  }
-
-  if(utils.isBlob(body)) {
-    return body.size;
-  }
-
-  if(utils.isSpecCompliantForm(body)) {
-    const _request = new Request(platform.origin, {
-      method: 'POST',
-      body,
     });
-    return (await _request.arrayBuffer()).byteLength;
-  }
+  })());
 
-  if(utils.isArrayBufferView(body) || utils.isArrayBuffer(body)) {
-    return body.byteLength;
-  }
+  const getBodyLength = async (body) => {
+    if (body == null) {
+      return 0;
+    }
 
-  if(utils.isURLSearchParams(body)) {
-    body = body + '';
-  }
+    if (utils.isBlob(body)) {
+      return body.size;
+    }
 
-  if(utils.isString(body)) {
-    return (await encodeText(body)).byteLength;
-  }
-}
-
-const resolveBodyLength = async (headers, body) => {
-  const length = utils.toFiniteNumber(headers.getContentLength());
-
-  return length == null ? getBodyLength(body) : length;
-}
-
-/* harmony default export */ const adapters_fetch = (isFetchSupported && (async (config) => {
-  let {
-    url,
-    method,
-    data,
-    signal,
-    cancelToken,
-    timeout,
-    onDownloadProgress,
-    onUploadProgress,
-    responseType,
-    headers,
-    withCredentials = 'same-origin',
-    fetchOptions
-  } = resolveConfig(config);
-
-  responseType = responseType ? (responseType + '').toLowerCase() : 'text';
-
-  let composedSignal = helpers_composeSignals([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
-
-  let request;
-
-  const unsubscribe = composedSignal && composedSignal.unsubscribe && (() => {
-      composedSignal.unsubscribe();
-  });
-
-  let requestContentLength;
-
-  try {
-    if (
-      onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head' &&
-      (requestContentLength = await resolveBodyLength(headers, data)) !== 0
-    ) {
-      let _request = new Request(url, {
+    if (utils.isSpecCompliantForm(body)) {
+      const _request = new Request(platform.origin, {
         method: 'POST',
-        body: data,
-        duplex: "half"
+        body,
       });
-
-      let contentTypeHeader;
-
-      if (utils.isFormData(data) && (contentTypeHeader = _request.headers.get('content-type'))) {
-        headers.setContentType(contentTypeHeader)
-      }
-
-      if (_request.body) {
-        const [onProgress, flush] = progressEventDecorator(
-          requestContentLength,
-          progressEventReducer(asyncDecorator(onUploadProgress))
-        );
-
-        data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
-      }
+      return (await _request.arrayBuffer()).byteLength;
     }
 
-    if (!utils.isString(withCredentials)) {
-      withCredentials = withCredentials ? 'include' : 'omit';
+    if (utils.isArrayBufferView(body) || utils.isArrayBuffer(body)) {
+      return body.byteLength;
     }
 
-    // Cloudflare Workers throws when credentials are defined
-    // see https://github.com/cloudflare/workerd/issues/902
-    const isCredentialsSupported = "credentials" in Request.prototype;
-    request = new Request(url, {
-      ...fetchOptions,
-      signal: composedSignal,
-      method: method.toUpperCase(),
-      headers: headers.normalize().toJSON(),
-      body: data,
-      duplex: "half",
-      credentials: isCredentialsSupported ? withCredentials : undefined
+    if (utils.isURLSearchParams(body)) {
+      body = body + '';
+    }
+
+    if (utils.isString(body)) {
+      return (await encodeText(body)).byteLength;
+    }
+  }
+
+  const resolveBodyLength = async (headers, body) => {
+    const length = utils.toFiniteNumber(headers.getContentLength());
+
+    return length == null ? getBodyLength(body) : length;
+  }
+
+  return async (config) => {
+    let {
+      url,
+      method,
+      data,
+      signal,
+      cancelToken,
+      timeout,
+      onDownloadProgress,
+      onUploadProgress,
+      responseType,
+      headers,
+      withCredentials = 'same-origin',
+      fetchOptions
+    } = resolveConfig(config);
+
+    let _fetch = envFetch || fetch;
+
+    responseType = responseType ? (responseType + '').toLowerCase() : 'text';
+
+    let composedSignal = helpers_composeSignals([signal, cancelToken && cancelToken.toAbortSignal()], timeout);
+
+    let request = null;
+
+    const unsubscribe = composedSignal && composedSignal.unsubscribe && (() => {
+      composedSignal.unsubscribe();
     });
 
-    let response = await fetch(request, fetchOptions);
+    let requestContentLength;
 
-    const isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
+    try {
+      if (
+        onUploadProgress && supportsRequestStream && method !== 'get' && method !== 'head' &&
+        (requestContentLength = await resolveBodyLength(headers, data)) !== 0
+      ) {
+        let _request = new Request(url, {
+          method: 'POST',
+          body: data,
+          duplex: "half"
+        });
 
-    if (supportsResponseStream && (onDownloadProgress || (isStreamResponse && unsubscribe))) {
-      const options = {};
+        let contentTypeHeader;
 
-      ['status', 'statusText', 'headers'].forEach(prop => {
-        options[prop] = response[prop];
-      });
-
-      const responseContentLength = utils.toFiniteNumber(response.headers.get('content-length'));
-
-      const [onProgress, flush] = onDownloadProgress && progressEventDecorator(
-        responseContentLength,
-        progressEventReducer(asyncDecorator(onDownloadProgress), true)
-      ) || [];
-
-      response = new Response(
-        trackStream(response.body, DEFAULT_CHUNK_SIZE, onProgress, () => {
-          flush && flush();
-          unsubscribe && unsubscribe();
-        }),
-        options
-      );
-    }
-
-    responseType = responseType || 'text';
-
-    let responseData = await resolvers[utils.findKey(resolvers, responseType) || 'text'](response, config);
-
-    !isStreamResponse && unsubscribe && unsubscribe();
-
-    return await new Promise((resolve, reject) => {
-      settle(resolve, reject, {
-        data: responseData,
-        headers: core_AxiosHeaders.from(response.headers),
-        status: response.status,
-        statusText: response.statusText,
-        config,
-        request
-      })
-    })
-  } catch (err) {
-    unsubscribe && unsubscribe();
-
-    if (err && err.name === 'TypeError' && /Load failed|fetch/i.test(err.message)) {
-      throw Object.assign(
-        new core_AxiosError('Network Error', core_AxiosError.ERR_NETWORK, config, request),
-        {
-          cause: err.cause || err
+        if (utils.isFormData(data) && (contentTypeHeader = _request.headers.get('content-type'))) {
+          headers.setContentType(contentTypeHeader)
         }
-      )
+
+        if (_request.body) {
+          const [onProgress, flush] = progressEventDecorator(
+            requestContentLength,
+            progressEventReducer(asyncDecorator(onUploadProgress))
+          );
+
+          data = trackStream(_request.body, DEFAULT_CHUNK_SIZE, onProgress, flush);
+        }
+      }
+
+      if (!utils.isString(withCredentials)) {
+        withCredentials = withCredentials ? 'include' : 'omit';
+      }
+
+      // Cloudflare Workers throws when credentials are defined
+      // see https://github.com/cloudflare/workerd/issues/902
+      const isCredentialsSupported = isRequestSupported && "credentials" in Request.prototype;
+
+      const resolvedOptions = {
+        ...fetchOptions,
+        signal: composedSignal,
+        method: method.toUpperCase(),
+        headers: headers.normalize().toJSON(),
+        body: data,
+        duplex: "half",
+        credentials: isCredentialsSupported ? withCredentials : undefined
+      };
+
+      request = isRequestSupported && new Request(url, resolvedOptions);
+
+      let response = await (isRequestSupported ? _fetch(request, fetchOptions) : _fetch(url, resolvedOptions));
+
+      const isStreamResponse = supportsResponseStream && (responseType === 'stream' || responseType === 'response');
+
+      if (supportsResponseStream && (onDownloadProgress || (isStreamResponse && unsubscribe))) {
+        const options = {};
+
+        ['status', 'statusText', 'headers'].forEach(prop => {
+          options[prop] = response[prop];
+        });
+
+        const responseContentLength = utils.toFiniteNumber(response.headers.get('content-length'));
+
+        const [onProgress, flush] = onDownloadProgress && progressEventDecorator(
+          responseContentLength,
+          progressEventReducer(asyncDecorator(onDownloadProgress), true)
+        ) || [];
+
+        response = new Response(
+          trackStream(response.body, DEFAULT_CHUNK_SIZE, onProgress, () => {
+            flush && flush();
+            unsubscribe && unsubscribe();
+          }),
+          options
+        );
+      }
+
+      responseType = responseType || 'text';
+
+      let responseData = await resolvers[utils.findKey(resolvers, responseType) || 'text'](response, config);
+
+      !isStreamResponse && unsubscribe && unsubscribe();
+
+      return await new Promise((resolve, reject) => {
+        settle(resolve, reject, {
+          data: responseData,
+          headers: core_AxiosHeaders.from(response.headers),
+          status: response.status,
+          statusText: response.statusText,
+          config,
+          request
+        })
+      })
+    } catch (err) {
+      unsubscribe && unsubscribe();
+
+      if (err && err.name === 'TypeError' && /Load failed|fetch/i.test(err.message)) {
+        throw Object.assign(
+          new core_AxiosError('Network Error', core_AxiosError.ERR_NETWORK, config, request),
+          {
+            cause: err.cause || err
+          }
+        )
+      }
+
+      throw core_AxiosError.from(err, err && err.code, config, request);
     }
-
-    throw core_AxiosError.from(err, err && err.code, config, request);
   }
-}));
+}
 
+const seedCache = new Map();
 
+const getFetch = (config) => {
+  let env = config ? config.env : {};
+  const {fetch, Request, Response} = env;
+  const seeds = [
+    Request, Response, fetch
+  ];
+
+  let len = seeds.length, i = len,
+    seed, target, map = seedCache;
+
+  while (i--) {
+    seed = seeds[i];
+    target = map.get(seed);
+
+    target === undefined && map.set(seed, target = (i ? new Map() : factory(env)))
+
+    map = target;
+  }
+
+  return target;
+};
+
+const adapter = getFetch();
+
+/* harmony default export */ const adapters_fetch = ((/* unused pure expression or super */ null && (adapter)));
 
 ;// CONCATENATED MODULE: ./node_modules/axios/lib/adapters/adapters.js
 
@@ -104685,7 +106440,9 @@ const resolveBodyLength = async (headers, body) => {
 const knownAdapters = {
   http: http,
   xhr: xhr,
-  fetch: adapters_fetch
+  fetch: {
+    get: getFetch,
+  }
 }
 
 utils.forEach(knownAdapters, (fn, value) => {
@@ -104704,7 +106461,7 @@ const renderReason = (reason) => `- ${reason}`;
 const isResolvedHandle = (adapter) => utils.isFunction(adapter) || adapter === null || adapter === false;
 
 /* harmony default export */ const adapters = ({
-  getAdapter: (adapters) => {
+  getAdapter: (adapters, config) => {
     adapters = utils.isArray(adapters) ? adapters : [adapters];
 
     const {length} = adapters;
@@ -104727,7 +106484,7 @@ const isResolvedHandle = (adapter) => utils.isFunction(adapter) || adapter === n
         }
       }
 
-      if (adapter) {
+      if (adapter && (utils.isFunction(adapter) || (adapter = adapter.get(config)))) {
         break;
       }
 
@@ -104805,7 +106562,7 @@ function dispatchRequest(config) {
     config.headers.setContentType('application/x-www-form-urlencoded', false);
   }
 
-  const adapter = adapters.getAdapter(config.adapter || lib_defaults.adapter);
+  const adapter = adapters.getAdapter(config.adapter || lib_defaults.adapter, config);
 
   return adapter(config).then(function onAdapterResolution(response) {
     throwIfCancellationRequested(config);
@@ -105112,8 +106869,6 @@ class Axios {
     len = requestInterceptorChain.length;
 
     let newConfig = config;
-
-    i = 0;
 
     while (i < len) {
       const onFulfilled = requestInterceptorChain[i++];
@@ -105569,7 +107324,8 @@ const parseLogOptionsMinLevel = (input) => {
     return log_entry.LogLevel_Level[inputInUpperCase];
 };
 //# sourceMappingURL=log-options-min-level.js.map
-;// CONCATENATED MODULE: ./lib/src/storage-mounts.js
+;// CONCATENATED MODULE: ./lib/src/mounts.js
+
 
 const DELIMITER = ':';
 const PATH_DELIMITER = '/';
@@ -105579,9 +107335,44 @@ const accessModeValuesSet = new Set([
     ...Array.from(accessModeReadOnlyValuesSet),
     ...Array.from(accessModeReadWriteValuesSet)
 ]);
+/**
+ * Line format: "MOUNT_PATH:SIZE[:ACCESS_MODE]"
+ * - MOUNT_PATH: absolute mount point inside the container (must be non-empty)
+ * - SIZE: disk size like "512Mb" or "5Gb"
+ * - ACCESS_MODE: optional; defaults to read-write. Allowed values mirror storage mounts
+ */
+const parseEphemeralMount = (input) => {
+    const [mountPointPathRaw, sizeRaw, accessModeRaw] = input.trim().split(DELIMITER);
+    if (!mountPointPathRaw) {
+        throw new Error(`revision-ephemeral-mounts: Line: '${input}' has wrong format. Empty mount path`);
+    }
+    if (!sizeRaw) {
+        throw new Error(`revision-ephemeral-mounts: Line: '${input}' has wrong format. Empty size`);
+    }
+    let mode = container.Mount_Mode.READ_WRITE;
+    if (accessModeRaw) {
+        if (!accessModeValuesSet.has(accessModeRaw)) {
+            throw new Error(`revision-ephemeral-mounts: Line: '${input}' has wrong format. Invalid accessMode. Possible values: ${Array.from(accessModeValuesSet).join(', ')}`);
+        }
+        mode = accessModeReadOnlyValuesSet.has(accessModeRaw) ? container.Mount_Mode.READ_ONLY : container.Mount_Mode.READ_WRITE;
+    }
+    const sizeBytes = parseMemory(sizeRaw);
+    return container.Mount.fromJSON({
+        mountPointPath: mountPointPathRaw,
+        mode,
+        ephemeralDiskSpec: {
+            size: sizeBytes
+        }
+    });
+};
+/**
+ * Line format: "S3_PATH:MOUNT_PATH[:ACCESS_MODE]"
+ * - S3_PATH: bucket and optional prefix like "bucket/prefix/path"
+ * - MOUNT_PATH: absolute mount point inside the container
+ * - ACCESS_MODE: optional; defaults to read-only. Allowed values same as ephemeral mounts
+ */
 const parseStorageMount = (input) => {
     const [s3Path, mountPointPath, accessMode] = input.split(DELIMITER).map(el => el.trim());
-    let readOnly = true;
     if (!s3Path) {
         throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty s3Path`);
     }
@@ -105590,24 +107381,43 @@ const parseStorageMount = (input) => {
     if (!mountPointPath) {
         throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Empty mountPath`);
     }
+    let mode = container.Mount_Mode.READ_ONLY;
     if (accessMode) {
         if (!accessModeValuesSet.has(accessMode)) {
             throw new Error(`revision-storage-mounts: Line: '${input}' has wrong format. Invalid accessMode. Possible values: ${Array.from(accessModeValuesSet).join(', ')}`);
         }
-        readOnly = accessModeReadOnlyValuesSet.has(accessMode);
+        mode = accessModeReadOnlyValuesSet.has(accessMode) ? container.Mount_Mode.READ_ONLY : container.Mount_Mode.READ_WRITE;
     }
-    return container.StorageMount.fromJSON({
-        bucketId,
-        prefix,
+    return container.Mount.fromJSON({
         mountPointPath,
-        readOnly
+        mode,
+        objectStorage: {
+            bucketId,
+            prefix
+        }
     });
 };
-const parseStorageMounts = (input) => {
-    const storageMounts = input.map(parseStorageMount);
-    return storageMounts.length ? storageMounts : undefined;
+/**
+ * Parse mount definitions supporting both ephemeral and S3 storage mounts.
+ *
+ * Ephemeral format: "MOUNT_PATH:SIZE[:ACCESS_MODE]"
+ * Storage format: "S3_PATH:MOUNT_PATH[:ACCESS_MODE]"
+ *
+ * The parser detects the type by checking if the second part looks like a size (e.g., "512Mb")
+ */
+const parseMounts = (ephemeralLines, storageLines) => {
+    const ephemeralMounts = ephemeralLines
+        .map(line => line.trim())
+        .filter(line => line !== '')
+        .map(parseEphemeralMount);
+    const storageMounts = storageLines
+        .map(line => line.trim())
+        .filter(line => line !== '')
+        .map(parseStorageMount);
+    const allMounts = [...ephemeralMounts, ...storageMounts];
+    return allMounts.length ? allMounts : undefined;
 };
-//# sourceMappingURL=storage-mounts.js.map
+//# sourceMappingURL=mounts.js.map
 ;// CONCATENATED MODULE: ./lib/src/service-account-json.js
 const fromServiceAccountJsonFile = (data) => ({
     accessKeyId: data.id,
@@ -105674,7 +107484,7 @@ const createRevision = async (session, containerId, revisionInputs) => {
         concurrency: revisionInputs.concurrency,
         secrets: revisionInputs.secrets,
         logOptions: revisionInputs.logOptions,
-        storageMounts: revisionInputs.storageMounts
+        mounts: revisionInputs.mounts
     };
     if (revisionInputs.networkId !== '') {
         req.connectivity = { networkId: revisionInputs.networkId, subnetIds: [] };
@@ -105715,7 +107525,7 @@ const parseRevisionInputs = () => {
     if (!!logOptionsLogGroupId && !!logOptionsFolderId) {
         throw new Error('revision-log-options-log-group-id and revision-log-options-folder-id cannot be set at the same time');
     }
-    const storageMounts = parseStorageMounts((0,core.getMultilineInput)('revision-storage-mounts'));
+    const mounts = parseMounts((0,core.getMultilineInput)('revision-ephemeral-mounts'), (0,core.getMultilineInput)('revision-storage-mounts'));
     const logOptions = container.LogOptions.fromJSON({
         disabled: logOptionsDisabled,
         logGroupId: logOptionsLogGroupId,
@@ -105742,7 +107552,7 @@ const parseRevisionInputs = () => {
         secrets,
         networkId,
         logOptions,
-        storageMounts
+        mounts
     };
 };
 const makeContainerPublic = async (session, containerId) => {

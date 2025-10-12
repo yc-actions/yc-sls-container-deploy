@@ -76,6 +76,28 @@ want to use. The action will use the first one it finds.
 
 See [action.yml](action.yml) for the full documentation for this action's inputs and outputs.
 
+### Ephemeral disk mounts (Preview)
+
+You can mount ephemeral disks to your Serverless Container to store temporary data larger than the `/tmp` limit.
+
+Add `revision-ephemeral-mounts` with one or more lines using the format `MOUNT_PATH:SIZE[:ACCESS_MODE]`:
+
+```yaml
+    - name: Deploy Serverless Container
+      id: deploy-sls-container
+      uses: yc-actions/yc-sls-container-deploy@v4
+      with:
+        # ... other parameters ...
+        revision-ephemeral-mounts: |
+          /app/tmp:5Gb:rw
+```
+
+Notes:
+- SIZE accepts values like `512Mb` or `5Gb`.
+- ACCESS_MODE is optional; defaults to read-write. Allowed values mirror storage mounts: `read-only|ro|readOnly|read_only|ReadOnly|read-write|rw|readWrite|read_write|ReadWrite`.
+- The mount path must be an empty directory inside the container image.
+- Feature availability and limits are described in Yandex Cloud docs: [Mount ephemeral storage](https://yandex.cloud/en/docs/serverless-containers/concepts/mounting#mount-ephemeral-storage).
+
 ## Secrets
 
 The action supports Yandex Cloud Lockbox secrets integration. You can specify secrets using the `revision-secrets` input parameter.
