@@ -31,7 +31,7 @@
     "@grpc/grpc-js": "^1.14.0",
     "@supercharge/promise-pool": "^3.2.0",
     "@yandex-cloud/nodejs-sdk": "^3.0.0-beta.1",
-    "axios": "^1.13.1",
+    "axios": "^1.13.2",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
