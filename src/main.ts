@@ -15,6 +15,10 @@ import { secretService } from '@yandex-cloud/nodejs-sdk/lockbox-v1'
 import { Secret as LockboxSecret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
 import { PromisePool } from '@supercharge/promise-pool'
 import axios from 'axios'
+import {
+    ListSecretsResponse,
+    ListSecretsRequest
+} from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret_service'
 
 import {
     CreateContainerRequest,
@@ -231,7 +235,11 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
     )
 }
 
-export const resolveLatestLockboxVersions = async (session: Session, secrets: Secret[]): Promise<Secret[]> => {
+export const resolveLatestLockboxVersions = async (
+    session: Session,
+    secrets: Secret[],
+    folderId: string
+): Promise<Secret[]> => {
     const secretsWithLatest = secrets.filter(s => s.versionId === 'latest')
     if (secretsWithLatest.length === 0) {
         return secrets
@@ -240,25 +248,70 @@ export const resolveLatestLockboxVersions = async (session: Session, secrets: Se
     const { results: resolvedSecrets, errors: resolveErrors } = await PromisePool.for(secretsWithLatest)
         .withConcurrency(5)
         .process(async secret => {
-            const lockboxSecret: LockboxSecret = await client.get({ secretId: secret.id })
-            if (!lockboxSecret.currentVersion) {
-                throw new Error(`Secret ${secret.id} has no current version`)
-            }
-            return {
-                ...secret,
-                versionId: lockboxSecret.currentVersion.id
+            try {
+                const lockboxSecret: LockboxSecret = await client.get({ secretId: secret.id })
+                if (!lockboxSecret.currentVersion) {
+                    throw new Error(`Secret ${secret.id} has no current version`)
+                }
+                return {
+                    ...secret,
+                    versionId: lockboxSecret.currentVersion.id
+                }
+            } catch (e) {
+                // Should be specific error, but for now we try to find by name
+                // Fallback to finding by name in the folder
+                // We assume that if the user provided a name, it is in the same folder where the container is deployed
+                info(`Failed to get secret by ID ${secret.id}. Trying to find by name in folder ${folderId}`)
+
+                // ListSecretsRequest does not support filter, so we have to list all and search
+                const foundSecrets: LockboxSecret[] = []
+                let pageToken: string | undefined = undefined
+
+                do {
+                    const resp: ListSecretsResponse = await client.list(
+                        ListSecretsRequest.fromPartial({
+                            folderId,
+                            pageSize: 100,
+                            pageToken: pageToken || ''
+                        })
+                    )
+                    if (resp.secrets) {
+                        const matches = resp.secrets.filter(s => s.name === secret.id)
+                        foundSecrets.push(...matches)
+                    }
+                    pageToken = resp.nextPageToken
+                } while (pageToken)
+
+                info(`Found ${foundSecrets.length} secrets by name "${secret.id}"`)
+
+                if (foundSecrets.length === 1 && foundSecrets[0].currentVersion) {
+                    const found = foundSecrets[0]
+                    info(`Resolved secret "${secret.id}" to ID "${found.id}"`)
+                    return {
+                        ...secret,
+                        id: found.id,
+                        versionId: found.currentVersion!.id
+                    }
+                }
+
+                if (foundSecrets.length > 0 && !foundSecrets[0].currentVersion) {
+                    info(`Secret found but has no current version`)
+                }
+
+                throw e
             }
         })
     if (resolveErrors.length > 0) {
         const errorMessages = resolveErrors.map(e => e.message).join(', ')
         throw new Error(`Failed to resolve latest versions for secrets: ${errorMessages}`)
     }
-    return secrets.map(s => {
-        const resolved = resolvedSecrets.find(
-            rs => rs.id === s.id && rs.key === s.key && rs.environmentVariable === s.environmentVariable
-        )
-        return resolved || s
-    })
+
+    const resolvedMap = new Map<Secret, Secret>()
+    for (const [index, secret] of secretsWithLatest.entries()) {
+        resolvedMap.set(secret, resolvedSecrets[index])
+    }
+
+    return secrets.map(s => resolvedMap.get(s) || s)
 }
 
 export const run = async (): Promise<void> => {
@@ -294,7 +347,7 @@ export const run = async (): Promise<void> => {
             required: true
         })
         const revisionInputs = parseRevisionInputs()
-        revisionInputs.secrets = await resolveLatestLockboxVersions(session, revisionInputs.secrets)
+        revisionInputs.secrets = await resolveLatestLockboxVersions(session, revisionInputs.secrets, folderId)
 
         info(`Folder ID: ${folderId}, container name: ${containerName}`)
         const containersResponse = await findContainerByName(session, folderId, containerName)

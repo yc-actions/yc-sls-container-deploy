@@ -43,9 +43,43 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets)
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
 
         expect(resolved[0].versionId).toBe('version123')
+        expect(resolved[0].versionId).toBe('version123')
+    })
+
+    it('should resolve "latest" to a specific version ID by secret name if ID lookup fails', async () => {
+        __setGetSecretFail(true)
+        const secrets: AppSecret[] = [
+            { id: 'secretName', versionId: 'latest', key: 'key1', environmentVariable: 'ENV1' }
+        ]
+        const lockboxSecrets: Secret[] = [
+            {
+                id: 'realSecretId',
+                folderId: 'folder1',
+                name: 'secretName',
+                description: 'test secret',
+                labels: {},
+                status: 1,
+                kmsKeyId: 'key1',
+                deletionProtection: false,
+                currentVersion: {
+                    id: 'version123',
+                    secretId: 'realSecretId',
+                    description: 'current version',
+                    status: 1,
+                    payloadEntryKeys: []
+                }
+            }
+        ]
+        __setSecretList(lockboxSecrets)
+
+        const session = new Session({})
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+
+        expect(resolved[0].versionId).toBe('version123')
+        expect(resolved[0].id).toBe('realSecretId')
     })
 
     it('should do nothing if no "latest" version is present', async () => {
@@ -53,7 +87,7 @@ describe('resolveLatestLockboxVersions', () => {
             { id: 'secret1', versionId: 'version1', key: 'key1', environmentVariable: 'ENV1' }
         ]
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets)
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
 
         expect(resolved).toEqual(secrets)
     })
@@ -76,7 +110,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        await expect(resolveLatestLockboxVersions(session, secrets)).rejects.toThrow(
+        await expect(resolveLatestLockboxVersions(session, secrets, 'folder1')).rejects.toThrow(
             'Secret secret1 has no current version'
         )
     })
@@ -108,7 +142,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets)
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
 
         expect(resolved.find(s => s.id === 'secret1')?.versionId).toBe('version123')
         expect(resolved.find(s => s.id === 'secret2')?.versionId).toBe('version2')
@@ -162,7 +196,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets)
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
 
         // Verify that "latest" versions were resolved to specific version IDs
         expect(resolved.find(s => s.id === 'secret1' && s.key === 'DATABASE_URL')?.versionId).toBe('version999')
@@ -226,7 +260,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets)
+        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
 
         // Verify that "latest" versions were resolved to specific version IDs
         expect(resolved.find(s => s.environmentVariable === 'DATABASE_URL_LATEST')?.versionId).toBe('version999')
