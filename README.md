@@ -205,7 +205,8 @@ Additionally, you may need to grant the following optional roles depending on yo
 | `vpc.user`                    | Deploying the container in a VPC with a specified network ID                           |
 | `serverless-containers.admin` | Making the container public                                                            |
 | `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly. |
-| `lockbox.payloadViewer`       | To access Lockbox secrets during deployment. Required for secret resolution.           |
+| `lockbox.viewer`       | To access Lockbox secrets during deployment. Required for secret resolution.           |
+| `editor`       | (8 Dec 2025) Due to a bug in the Yandex IAM service, it is currently possible to deploy a container with secrets only with the 'editor' role.           |
 
 ### Runtime permissions
 
