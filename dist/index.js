@@ -108105,68 +108105,97 @@ const makeContainerPublic = async (session, containerId) => {
         ]
     }));
 };
-const resolveLatestLockboxVersions = async (session, secrets, folderId) => {
+const resolveLatestLockboxVersions = async (session, folderId, secrets) => {
     const secretsWithLatest = secrets.filter(s => s.versionId === 'latest');
     if (secretsWithLatest.length === 0) {
         return secrets;
     }
     const client = session.client(lockbox_v1.secretService.SecretServiceClient);
-    const { results: resolvedSecrets, errors: resolveErrors } = await promise_pool_dist.PromisePool.for(secretsWithLatest)
+    const { results } = await promise_pool_dist.PromisePool.for(secretsWithLatest)
         .withConcurrency(5)
         .process(async (secret) => {
+        let lockboxSecret;
         try {
-            const lockboxSecret = await client.get({ secretId: secret.id });
-            if (!lockboxSecret.currentVersion) {
-                throw new Error(`Secret ${secret.id} has no current version`);
-            }
+            lockboxSecret = await client.get({ secretId: secret.id });
+        }
+        catch {
+            return { status: 'fallback', original: secret };
+        }
+        if (!lockboxSecret.currentVersion) {
             return {
-                ...secret,
-                versionId: lockboxSecret.currentVersion.id
+                status: 'error',
+                error: new Error(`Secret ${secret.id} has no current version`)
             };
         }
-        catch (e) {
-            // Should be specific error, but for now we try to find by name
-            // Fallback to finding by name in the folder
-            // We assume that if the user provided a name, it is in the same folder where the container is deployed
-            (0,core.info)(`Failed to get secret by ID ${secret.id}. Trying to find by name in folder ${folderId}`);
-            // ListSecretsRequest does not support filter, so we have to list all and search
-            const foundSecrets = [];
-            let pageToken = undefined;
-            do {
-                const resp = await client.list(secret_service.ListSecretsRequest.fromPartial({
-                    folderId,
-                    pageSize: 100,
-                    pageToken: pageToken || ''
-                }));
-                if (resp.secrets) {
-                    const matches = resp.secrets.filter(s => s.name === secret.id);
-                    foundSecrets.push(...matches);
-                }
-                pageToken = resp.nextPageToken;
-            } while (pageToken);
-            (0,core.info)(`Found ${foundSecrets.length} secrets by name "${secret.id}"`);
-            if (foundSecrets.length === 1 && foundSecrets[0].currentVersion) {
-                const found = foundSecrets[0];
-                (0,core.info)(`Resolved secret "${secret.id}" to ID "${found.id}"`);
-                return {
-                    ...secret,
-                    id: found.id,
-                    versionId: found.currentVersion.id
-                };
+        return {
+            status: 'success',
+            secret: {
+                ...secret,
+                versionId: lockboxSecret.currentVersion.id
             }
-            if (foundSecrets.length > 0 && !foundSecrets[0].currentVersion) {
-                (0,core.info)(`Secret found but has no current version`);
-            }
-            throw e;
-        }
+        };
     });
-    if (resolveErrors.length > 0) {
-        const errorMessages = resolveErrors.map(e => e.message).join(', ');
-        throw new Error(`Failed to resolve latest versions for secrets: ${errorMessages}`);
+    const fallbackIndices = results.map((r, i) => (r.status === 'fallback' ? i : -1)).filter(i => i !== -1);
+    if (fallbackIndices.length > 0) {
+        (0,core.info)(`Failed to resolve ${fallbackIndices.length} secrets by ID. Trying to find by name in folder ${folderId}`);
+        const foundSecrets = [];
+        let pageToken = undefined;
+        do {
+            const resp = await client.list(secret_service.ListSecretsRequest.fromPartial({
+                folderId,
+                pageSize: 100,
+                pageToken: pageToken || ''
+            }));
+            if (resp.secrets) {
+                foundSecrets.push(...resp.secrets);
+            }
+            pageToken = resp.nextPageToken;
+        } while (pageToken);
+        for (const index of fallbackIndices) {
+            const result = results[index];
+            if (result.status !== 'fallback')
+                continue; // Should not happen given logic above
+            const originalSecret = result.original;
+            const match = foundSecrets.find(s => s.name === originalSecret.id);
+            if (match) {
+                (0,core.info)(`Resolved secret "${originalSecret.id}" to ID "${match.id}"`);
+                if (!match.currentVersion) {
+                    results[index] = {
+                        status: 'error',
+                        error: new Error(`Secret ${originalSecret.id} (found as ${match.id}) has no current version`)
+                    };
+                }
+                else {
+                    results[index] = {
+                        status: 'success',
+                        secret: {
+                            ...originalSecret,
+                            id: match.id,
+                            versionId: match.currentVersion.id
+                        }
+                    };
+                }
+            }
+            // If not found, it remains 'fallback' status, which we'll treat as "Not Found" error
+        }
     }
+    const resolutionErrors = [];
     const resolvedMap = new Map();
     for (const [index, secret] of secretsWithLatest.entries()) {
-        resolvedMap.set(secret, resolvedSecrets[index]);
+        const result = results[index];
+        if (result.status === 'success') {
+            resolvedMap.set(secret, result.secret);
+        }
+        else if (result.status === 'error') {
+            resolutionErrors.push(result.error);
+        }
+        else if (result.status === 'fallback') {
+            resolutionErrors.push(new Error(`Failed to resolve secret: ${secret.id}`));
+        }
+    }
+    if (resolutionErrors.length > 0) {
+        const errorMessages = resolutionErrors.map(e => e.message).join(', ');
+        throw new Error(`Failed to resolve latest versions for secrets: ${errorMessages}`);
     }
     return secrets.map(s => resolvedMap.get(s) || s);
 };
@@ -108205,7 +108234,7 @@ const run = async () => {
             required: true
         });
         const revisionInputs = parseRevisionInputs();
-        revisionInputs.secrets = await resolveLatestLockboxVersions(session, revisionInputs.secrets, folderId);
+        revisionInputs.secrets = await resolveLatestLockboxVersions(session, folderId, revisionInputs.secrets);
         (0,core.info)(`Folder ID: ${folderId}, container name: ${containerName}`);
         const containersResponse = await findContainerByName(session, folderId, containerName);
         let containerId;

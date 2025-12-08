@@ -43,7 +43,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         expect(resolved[0].versionId).toBe('version123')
         expect(resolved[0].versionId).toBe('version123')
@@ -76,7 +76,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         expect(resolved[0].versionId).toBe('version123')
         expect(resolved[0].id).toBe('realSecretId')
@@ -87,7 +87,7 @@ describe('resolveLatestLockboxVersions', () => {
             { id: 'secret1', versionId: 'version1', key: 'key1', environmentVariable: 'ENV1' }
         ]
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         expect(resolved).toEqual(secrets)
     })
@@ -110,7 +110,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        await expect(resolveLatestLockboxVersions(session, secrets, 'folder1')).rejects.toThrow(
+        await expect(resolveLatestLockboxVersions(session, 'folder1', secrets)).rejects.toThrow(
             'Secret secret1 has no current version'
         )
     })
@@ -142,7 +142,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         expect(resolved.find(s => s.id === 'secret1')?.versionId).toBe('version123')
         expect(resolved.find(s => s.id === 'secret2')?.versionId).toBe('version2')
@@ -196,7 +196,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         // Verify that "latest" versions were resolved to specific version IDs
         expect(resolved.find(s => s.id === 'secret1' && s.key === 'DATABASE_URL')?.versionId).toBe('version999')
@@ -260,7 +260,7 @@ describe('resolveLatestLockboxVersions', () => {
         __setSecretList(lockboxSecrets)
 
         const session = new Session({})
-        const resolved = await resolveLatestLockboxVersions(session, secrets, 'folder1')
+        const resolved = await resolveLatestLockboxVersions(session, 'folder1', secrets)
 
         // Verify that "latest" versions were resolved to specific version IDs
         expect(resolved.find(s => s.environmentVariable === 'DATABASE_URL_LATEST')?.versionId).toBe('version999')
