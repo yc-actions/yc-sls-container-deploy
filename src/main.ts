@@ -102,7 +102,8 @@ const createRevision = async (
         concurrency: revisionInputs.concurrency,
         secrets: revisionInputs.secrets,
         logOptions: revisionInputs.logOptions,
-        mounts: revisionInputs.mounts
+        mounts: revisionInputs.mounts,
+        runtime: revisionInputs.runtime === 'http' ? { http: {} } : { task: {} }
     } as DeepPartial<DeployContainerRevisionRequest>
 
     if (revisionInputs.networkId !== '') {
@@ -145,6 +146,7 @@ interface IRevisionInputs {
     logOptions: LogOptions
     mounts?: Mount[]
     networkId?: string
+    runtime: 'http' | 'task'
 }
 
 const parseRevisionInputs = (): IRevisionInputs => {
@@ -158,6 +160,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     const provisionedRaw: string = getInput('revision-provisioned')
     const executionTimeout: number = Number.parseInt(getInput('revision-execution-timeout') || '3', 10)
     const networkId: string = getInput('revision-network-id')
+    const runtime = (getInput('revision-runtime') || 'http') as 'http' | 'task'
     const commands: string[] = getMultilineInput('revision-commands')
 
     const command = commands.length > 0 ? { command: commands } : undefined
@@ -212,7 +215,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
         secrets,
         networkId,
         logOptions,
-        mounts
+        mounts,
+        runtime
     }
 }
 

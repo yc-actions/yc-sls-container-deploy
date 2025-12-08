@@ -16280,7 +16280,7 @@ let Server = (() => {
                                 if (err) {
                                     this.keepaliveTrace('Ping failed with error: ' + err.message);
                                     sessionClosedByServer = true;
-                                    session.destroy();
+                                    session.close();
                                 }
                                 else {
                                     this.keepaliveTrace('Received ping response');
@@ -16300,7 +16300,7 @@ let Server = (() => {
                             this.keepaliveTrace('Ping send failed: ' + pingSendError);
                             this.trace('Connection dropped due to ping send error: ' + pingSendError);
                             sessionClosedByServer = true;
-                            session.destroy();
+                            session.close();
                             return;
                         }
                         keepaliveTimer = setTimeout(() => {
@@ -16308,7 +16308,7 @@ let Server = (() => {
                             this.keepaliveTrace('Ping timeout passed without response');
                             this.trace('Connection dropped by keepalive timeout');
                             sessionClosedByServer = true;
-                            session.destroy();
+                            session.close();
                         }, this.keepaliveTimeoutMs);
                         (_b = keepaliveTimer.unref) === null || _b === void 0 ? void 0 : _b.call(keepaliveTimer);
                     };
@@ -16427,7 +16427,7 @@ let Server = (() => {
                                         ' return in ' +
                                         duration);
                                     sessionClosedByServer = true;
-                                    session.destroy();
+                                    session.close();
                                 }
                                 else {
                                     this.keepaliveTrace('Received ping response');
@@ -16447,7 +16447,7 @@ let Server = (() => {
                             this.keepaliveTrace('Ping send failed: ' + pingSendError);
                             this.channelzTrace.addTrace('CT_INFO', 'Connection dropped due to ping send error: ' + pingSendError);
                             sessionClosedByServer = true;
-                            session.destroy();
+                            session.close();
                             return;
                         }
                         channelzSessionInfo.keepAlivesSent += 1;
@@ -16456,7 +16456,7 @@ let Server = (() => {
                             this.keepaliveTrace('Ping timeout passed without response');
                             this.channelzTrace.addTrace('CT_INFO', 'Connection dropped by keepalive timeout from ' + clientAddress);
                             sessionClosedByServer = true;
-                            session.destroy();
+                            session.close();
                         }, this.keepaliveTimeoutMs);
                         (_b = keepaliveTimeout.unref) === null || _b === void 0 ? void 0 : _b.call(keepaliveTimeout);
                     };
@@ -44100,12 +44100,7 @@ function jwsSign(opts) {
 }
 
 function SignStream(opts) {
-  var secret = opts.secret;
-  secret = secret == null ? opts.privateKey : secret;
-  secret = secret == null ? opts.key : secret;
-  if (/^hs/i.test(opts.header.alg) === true && secret == null) {
-    throw new TypeError('secret must be a string or buffer or a KeyObject')
-  }
+  var secret = opts.secret||opts.privateKey||opts.key;
   var secretStream = new DataStream(secret);
   this.readable = true;
   this.header = opts.header;
@@ -44252,12 +44247,7 @@ function jwsDecode(jwsSig, opts) {
 
 function VerifyStream(opts) {
   opts = opts || {};
-  var secretOrKey = opts.secret;
-  secretOrKey = secretOrKey == null ? opts.publicKey : secretOrKey;
-  secretOrKey = secretOrKey == null ? opts.key : secretOrKey;
-  if (/^hs/i.test(opts.algorithm) === true && secretOrKey == null) {
-    throw new TypeError('secret must be a string or buffer or a KeyObject')
-  }
+  var secretOrKey = opts.secret||opts.publicKey||opts.key;
   var secretStream = new DataStream(secretOrKey);
   this.readable = true;
   this.algorithm = opts.algorithm;
@@ -102108,7 +102098,7 @@ module.exports = axios;
 /***/ ((module) => {
 
 "use strict";
-module.exports = {"rE":"1.14.2"};
+module.exports = {"rE":"1.14.1"};
 
 /***/ }),
 
@@ -108029,7 +108019,8 @@ const createRevision = async (session, containerId, revisionInputs) => {
         concurrency: revisionInputs.concurrency,
         secrets: revisionInputs.secrets,
         logOptions: revisionInputs.logOptions,
-        mounts: revisionInputs.mounts
+        mounts: revisionInputs.mounts,
+        runtime: revisionInputs.runtime === 'http' ? { http: {} } : { task: {} }
     };
     if (revisionInputs.networkId !== '') {
         req.connectivity = { networkId: revisionInputs.networkId, subnetIds: [] };
@@ -108057,6 +108048,7 @@ const parseRevisionInputs = () => {
     const provisionedRaw = (0,core.getInput)('revision-provisioned');
     const executionTimeout = Number.parseInt((0,core.getInput)('revision-execution-timeout') || '3', 10);
     const networkId = (0,core.getInput)('revision-network-id');
+    const runtime = ((0,core.getInput)('revision-runtime') || 'http');
     const commands = (0,core.getMultilineInput)('revision-commands');
     const command = commands.length > 0 ? { command: commands } : undefined;
     const argList = (0,core.getMultilineInput)('revision-args');
@@ -108097,7 +108089,8 @@ const parseRevisionInputs = () => {
         secrets,
         networkId,
         logOptions,
-        mounts
+        mounts,
+        runtime
     };
 };
 const makeContainerPublic = async (session, containerId) => {
