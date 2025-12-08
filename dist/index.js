@@ -108105,13 +108105,9 @@ const makeContainerPublic = async (session, containerId) => {
         ]
     }));
 };
-const resolveLatestLockboxVersions = async (session, folderId, secrets) => {
-    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest');
-    if (secretsWithLatest.length === 0) {
-        return secrets;
-    }
+const resolveSecretsById = async (session, secrets) => {
     const client = session.client(lockbox_v1.secretService.SecretServiceClient);
-    const { results } = await promise_pool_dist.PromisePool.for(secretsWithLatest)
+    const { results } = await promise_pool_dist.PromisePool.for(secrets)
         .withConcurrency(5)
         .process(async (secret) => {
         let lockboxSecret;
@@ -108135,28 +108131,43 @@ const resolveLatestLockboxVersions = async (session, folderId, secrets) => {
             }
         };
     });
+    return results;
+};
+const findSecretsInFolder = async (session, folderId) => {
+    const client = session.client(lockbox_v1.secretService.SecretServiceClient);
+    const folderSecretsMap = new Map();
+    let pageToken = undefined;
+    do {
+        const resp = await client.list(secret_service.ListSecretsRequest.fromPartial({
+            folderId,
+            pageSize: 100,
+            pageToken: pageToken || ''
+        }));
+        if (resp.secrets) {
+            for (const secret of resp.secrets) {
+                folderSecretsMap.set(secret.name, secret);
+            }
+        }
+        pageToken = resp.nextPageToken;
+    } while (pageToken);
+    return folderSecretsMap;
+};
+const resolveLatestLockboxVersions = async (session, folderId, secrets) => {
+    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest');
+    if (secretsWithLatest.length === 0) {
+        return secrets;
+    }
+    const results = await resolveSecretsById(session, secretsWithLatest);
     const fallbackIndices = results.map((r, i) => (r.status === 'fallback' ? i : -1)).filter(i => i !== -1);
     if (fallbackIndices.length > 0) {
         (0,core.info)(`Failed to resolve ${fallbackIndices.length} secrets by ID. Trying to find by name in folder ${folderId}`);
-        const foundSecrets = [];
-        let pageToken = undefined;
-        do {
-            const resp = await client.list(secret_service.ListSecretsRequest.fromPartial({
-                folderId,
-                pageSize: 100,
-                pageToken: pageToken || ''
-            }));
-            if (resp.secrets) {
-                foundSecrets.push(...resp.secrets);
-            }
-            pageToken = resp.nextPageToken;
-        } while (pageToken);
+        const folderSecretsMap = await findSecretsInFolder(session, folderId);
         for (const index of fallbackIndices) {
             const result = results[index];
             if (result.status !== 'fallback')
-                continue; // Should not happen given logic above
+                continue;
             const originalSecret = result.original;
-            const match = foundSecrets.find(s => s.name === originalSecret.id);
+            const match = folderSecretsMap.get(originalSecret.id);
             if (match) {
                 (0,core.info)(`Resolved secret "${originalSecret.id}" to ID "${match.id}"`);
                 if (!match.currentVersion) {
@@ -108176,7 +108187,6 @@ const resolveLatestLockboxVersions = async (session, folderId, secrets) => {
                     };
                 }
             }
-            // If not found, it remains 'fallback' status, which we'll treat as "Not Found" error
         }
     }
     const resolutionErrors = [];

@@ -49,6 +49,39 @@ describe('resolveLatestLockboxVersions', () => {
         expect(resolved[0].versionId).toBe('version123')
     })
 
+    it('should throw an error if some secrets are not found', async () => {
+        __setGetSecretFail(true)
+        const secrets: AppSecret[] = [
+            { id: 'foundSecret', versionId: 'latest', key: 'key1', environmentVariable: 'ENV1' },
+            { id: 'missingSecret', versionId: 'latest', key: 'key2', environmentVariable: 'ENV2' }
+        ]
+        const lockboxSecrets: Secret[] = [
+            {
+                id: 'realSecretId',
+                folderId: 'folder1',
+                name: 'foundSecret',
+                description: 'test secret',
+                labels: {},
+                status: 1,
+                kmsKeyId: 'key1',
+                deletionProtection: false,
+                currentVersion: {
+                    id: 'version123',
+                    secretId: 'realSecretId',
+                    description: 'current version',
+                    status: 1,
+                    payloadEntryKeys: []
+                }
+            }
+        ]
+        __setSecretList(lockboxSecrets)
+
+        const session = new Session({})
+        await expect(resolveLatestLockboxVersions(session, 'folder1', secrets)).rejects.toThrow(
+            'Failed to resolve latest versions for secrets: Failed to resolve secret: missingSecret'
+        )
+    })
+
     it('should resolve "latest" to a specific version ID by secret name if ID lookup fails', async () => {
         __setGetSecretFail(true)
         const secrets: AppSecret[] = [

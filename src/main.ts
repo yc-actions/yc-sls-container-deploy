@@ -235,23 +235,14 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
     )
 }
 
-export const resolveLatestLockboxVersions = async (
-    session: Session,
-    folderId: string,
-    secrets: Secret[]
-): Promise<Secret[]> => {
-    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest')
-    if (secretsWithLatest.length === 0) {
-        return secrets
-    }
+type ResolutionResult =
+    | { status: 'success'; secret: Secret }
+    | { status: 'fallback'; original: Secret }
+    | { status: 'error'; error: Error }
+
+const resolveSecretsById = async (session: Session, secrets: Secret[]): Promise<ResolutionResult[]> => {
     const client = session.client(secretService.SecretServiceClient)
-
-    type ResolutionResult =
-        | { status: 'success'; secret: Secret }
-        | { status: 'fallback'; original: Secret }
-        | { status: 'error'; error: Error }
-
-    const { results } = await PromisePool.for(secretsWithLatest)
+    const { results } = await PromisePool.for(secrets)
         .withConcurrency(5)
         .process(async (secret): Promise<ResolutionResult> => {
             let lockboxSecret: LockboxSecret
@@ -275,35 +266,57 @@ export const resolveLatestLockboxVersions = async (
                 }
             }
         })
+    return results
+}
 
+const findSecretsInFolder = async (session: Session, folderId: string): Promise<Map<string, LockboxSecret>> => {
+    const client = session.client(secretService.SecretServiceClient)
+    const folderSecretsMap = new Map<string, LockboxSecret>()
+    let pageToken: string | undefined = undefined
+
+    do {
+        const resp: ListSecretsResponse = await client.list(
+            ListSecretsRequest.fromPartial({
+                folderId,
+                pageSize: 100,
+                pageToken: pageToken || ''
+            })
+        )
+        if (resp.secrets) {
+            for (const secret of resp.secrets) {
+                folderSecretsMap.set(secret.name, secret)
+            }
+        }
+        pageToken = resp.nextPageToken
+    } while (pageToken)
+
+    return folderSecretsMap
+}
+
+export const resolveLatestLockboxVersions = async (
+    session: Session,
+    folderId: string,
+    secrets: Secret[]
+): Promise<Secret[]> => {
+    const secretsWithLatest = secrets.filter(s => s.versionId === 'latest')
+    if (secretsWithLatest.length === 0) {
+        return secrets
+    }
+
+    const results = await resolveSecretsById(session, secretsWithLatest)
     const fallbackIndices = results.map((r, i) => (r.status === 'fallback' ? i : -1)).filter(i => i !== -1)
 
     if (fallbackIndices.length > 0) {
         info(`Failed to resolve ${fallbackIndices.length} secrets by ID. Trying to find by name in folder ${folderId}`)
 
-        const foundSecrets: LockboxSecret[] = []
-        let pageToken: string | undefined = undefined
-
-        do {
-            const resp: ListSecretsResponse = await client.list(
-                ListSecretsRequest.fromPartial({
-                    folderId,
-                    pageSize: 100,
-                    pageToken: pageToken || ''
-                })
-            )
-            if (resp.secrets) {
-                foundSecrets.push(...resp.secrets)
-            }
-            pageToken = resp.nextPageToken
-        } while (pageToken)
+        const folderSecretsMap = await findSecretsInFolder(session, folderId)
 
         for (const index of fallbackIndices) {
             const result = results[index]
-            if (result.status !== 'fallback') continue // Should not happen given logic above
+            if (result.status !== 'fallback') continue
 
             const originalSecret = result.original
-            const match = foundSecrets.find(s => s.name === originalSecret.id)
+            const match = folderSecretsMap.get(originalSecret.id)
 
             if (match) {
                 info(`Resolved secret "${originalSecret.id}" to ID "${match.id}"`)
@@ -323,7 +336,6 @@ export const resolveLatestLockboxVersions = async (
                     }
                 }
             }
-            // If not found, it remains 'fallback' status, which we'll treat as "Not Found" error
         }
     }
 
