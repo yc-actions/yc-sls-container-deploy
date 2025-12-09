@@ -244,6 +244,7 @@ const resolveSecretsById = async (session: Session, secrets: Secret[]): Promise<
     const client = session.client(secretService.SecretServiceClient)
     const { results } = await PromisePool.for(secrets)
         .withConcurrency(5)
+        .useCorrespondingResults()
         .process(async (secret): Promise<ResolutionResult> => {
             let lockboxSecret: LockboxSecret
             try {
@@ -266,7 +267,7 @@ const resolveSecretsById = async (session: Session, secrets: Secret[]): Promise<
                 }
             }
         })
-    return results
+    return results.filter((r): r is ResolutionResult => typeof r !== 'symbol')
 }
 
 const findSecretsInFolder = async (session: Session, folderId: string): Promise<Map<string, LockboxSecret>> => {

@@ -108109,6 +108109,7 @@ const resolveSecretsById = async (session, secrets) => {
     const client = session.client(lockbox_v1.secretService.SecretServiceClient);
     const { results } = await promise_pool_dist.PromisePool.for(secrets)
         .withConcurrency(5)
+        .useCorrespondingResults()
         .process(async (secret) => {
         let lockboxSecret;
         try {
@@ -108131,7 +108132,7 @@ const resolveSecretsById = async (session, secrets) => {
             }
         };
     });
-    return results;
+    return results.filter((r) => typeof r !== 'symbol');
 };
 const findSecretsInFolder = async (session, folderId) => {
     const client = session.client(lockbox_v1.secretService.SecretServiceClient);
