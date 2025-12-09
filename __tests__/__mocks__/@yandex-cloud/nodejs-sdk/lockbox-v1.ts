@@ -16,7 +16,21 @@ export const SecretServiceMock = {
             return Promise.reject(new Error(`Secret not found: ${req.secretId}`))
         }
         return secret
-    })
+    }),
+    list: jest
+        .fn()
+        .mockImplementation(
+            async (req: {
+                folderId: string
+                pageSize?: number
+                pageToken?: string
+            }): Promise<{ secrets: Secret[]; nextPageToken: string }> => {
+                // Since we don't support filter in parameters anymore passing all is enough for tests as we filter in main.ts
+                // But for test "should resolve ... by secret name" we need to return the secrets that include the one with the name
+                // In the test setup __setSecretList sets the secrets
+                return { secrets, nextPageToken: '' }
+            }
+        )
 }
 
 export function __setSecretList(value: Secret[]) {
