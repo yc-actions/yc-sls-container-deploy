@@ -59,10 +59,12 @@ image name and tag.
 
 One of `yc-sa-json-credentials`, `yc-iam-token` or `yc-sa-id` should be provided depending on the authentication method you
 want to use. The action will use the first one it finds.
-* `yc-sa-json-credentials` should contain JSON with authorized key for Service Account. More info
+
+- `yc-sa-json-credentials` should contain JSON with authorized key for Service Account. More info
   in [Yandex Cloud IAM documentation](https://yandex.cloud/en/docs/iam/operations/authentication/manage-authorized-keys#cli_1).
-* `yc-iam-token` should contain IAM token. It can be obtained using `yc iam create-token` command or using
+- `yc-iam-token` should contain IAM token. It can be obtained using `yc iam create-token` command or using
   [yc-actions/yc-iam-token-fed](https://github.com/yc-actions/yc-iam-token-fed)
+
 ```yaml
       - name: Get Yandex Cloud IAM token
         id: get-iam-token
@@ -70,9 +72,9 @@ want to use. The action will use the first one it finds.
         with:
           yc-sa-id: aje***
 ```
+
 * `yc-sa-id` should contain Service Account ID. It can be obtained using `yc iam service-accounts list` command. It is
   used to exchange GitHub token for IAM token using Workload Identity Federation. More info in [Yandex Cloud IAM documentation](https://yandex.cloud/ru/docs/iam/concepts/workload-identity).
-
 
 See [action.yml](action.yml) for the full documentation for this action's inputs and outputs.
 
@@ -93,6 +95,7 @@ Add `revision-ephemeral-mounts` with one or more lines using the format `MOUNT_P
 ```
 
 Notes:
+
 - SIZE accepts values like `512Mb` or `5Gb`.
 - ACCESS_MODE is optional; defaults to read-write. Allowed values mirror storage mounts: `read-only|ro|readOnly|read_only|ReadOnly|read-write|rw|readWrite|read_write|ReadWrite`.
 - The mount path must be an empty directory inside the container image.
@@ -105,11 +108,13 @@ The action supports Yandex Cloud Lockbox secrets integration. You can specify se
 ### Secret Format
 
 Secrets should be specified in the following format:
-```
+
+```text
 environmentVariable=secretId/versionId/key
 ```
 
 Where:
+
 - `environmentVariable` - the name of the environment variable that will be available in the container
 - `secretId` - the ID of the Lockbox secret
 - `versionId` - the version ID of the secret (use `latest` to automatically resolve to the current version)
@@ -120,6 +125,7 @@ Where:
 ### Usage Examples
 
 #### Basic Secret Usage
+
 ```yaml
     - name: Deploy Serverless Container
       uses: yc-actions/yc-sls-container-deploy@v4
@@ -131,6 +137,7 @@ Where:
 ```
 
 #### Multiple Secrets with Different Versions
+
 ```yaml
     - name: Deploy Serverless Container
       uses: yc-actions/yc-sls-container-deploy@v4
@@ -144,6 +151,7 @@ Where:
 ```
 
 #### Same Key with Different Environment Variables
+
 You can use the same secret key with different versions and map them to different environment variables:
 
 ```yaml
@@ -163,6 +171,7 @@ You can use the same secret key with different versions and map them to differen
 ```
 
 #### Using Comments
+
 You can add comments to document your secrets:
 
 ```yaml
@@ -199,13 +208,14 @@ the `serverless-containers.editor` role or higher.
 
 Additionally, you may need to grant the following optional roles depending on your specific needs:
 
-| Optional Role                 | Required For                                                                           |
-|-------------------------------|----------------------------------------------------------------------------------------|
-| `iam.serviceAccounts.user`    | Providing the service account ID in parameters, ensuring access to the service account |
-| `vpc.user`                    | Deploying the container in a VPC with a specified network ID                           |
-| `serverless-containers.admin` | Making the container public                                                            |
-| `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly. |
-| `lockbox.viewer`       | To access Lockbox secrets during deployment. Required for secret resolution.           |
+| Optional Role                 | Required For                                                                                                                   |
+|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `iam.serviceAccounts.user`    | Providing the service account ID in parameters, ensuring access to the service account                                         |
+| `vpc.user`                    | Deploying the container in a VPC with a specified network ID                                                                   |
+| `serverless-containers.admin` | Making the container public                                                                                                    |
+| `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly|
+| `lockbox.payloadViewer`       | To access Lockbox secrets during deployment. Required for secret if is **resolved by id**                                      |
+| `lockbox.viewer`              | To access Lockbox secrets during deployment. Required for secret if is **resolved by name**                                    |
 
 ### Runtime permissions
 
