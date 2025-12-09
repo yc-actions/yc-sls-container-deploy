@@ -108048,7 +108048,7 @@ const parseRevisionInputs = () => {
     const provisionedRaw = (0,core.getInput)('revision-provisioned');
     const executionTimeout = Number.parseInt((0,core.getInput)('revision-execution-timeout') || '3', 10);
     const networkId = (0,core.getInput)('revision-network-id');
-    const runtime = ((0,core.getInput)('revision-runtime') || 'http');
+    const runtime = (((0,core.getInput)('revision-runtime') || 'http').toLowerCase());
     const commands = (0,core.getMultilineInput)('revision-commands');
     const command = commands.length > 0 ? { command: commands } : undefined;
     const argList = (0,core.getMultilineInput)('revision-args');

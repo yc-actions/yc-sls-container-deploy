@@ -193,4 +193,17 @@ describe('main run function', () => {
         expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
         expect(setFailedMock).not.toHaveBeenCalled()
     })
+
+    it('should handle runtime parameter case-insensitively', async () => {
+        setupMockInputs({ ...defaultValues, 'revision-runtime': 'HTTP' })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                runtime: { http: {} }
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
 })

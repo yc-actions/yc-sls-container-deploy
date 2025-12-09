@@ -160,7 +160,7 @@ const parseRevisionInputs = (): IRevisionInputs => {
     const provisionedRaw: string = getInput('revision-provisioned')
     const executionTimeout: number = Number.parseInt(getInput('revision-execution-timeout') || '3', 10)
     const networkId: string = getInput('revision-network-id')
-    const runtime = (getInput('revision-runtime') || 'http') as 'http' | 'task'
+    const runtime = (getInput('revision-runtime') || 'http').toLowerCase() as 'http' | 'task'
     const commands: string[] = getMultilineInput('revision-commands')
 
     const command = commands.length > 0 ? { command: commands } : undefined
