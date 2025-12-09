@@ -115,6 +115,8 @@ const defaultValues: Record<string, string> = {
     'revision-log-options-folder-id': '',
     'revision-log-options-min-level': 'INFO',
     'revision-runtime': 'http',
+    'revision-zone-instances-limit': '',
+    'revision-zone-requests-limit': '',
     public: ''
 }
 
@@ -200,6 +202,95 @@ describe('main run function', () => {
         expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
             expect.objectContaining({
                 runtime: { http: {} }
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should pass scalingPolicy with both zone limits when provided', async () => {
+        setupMockInputs({
+            ...defaultValues,
+            'revision-zone-instances-limit': '5',
+            'revision-zone-requests-limit': '100'
+        })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                scalingPolicy: {
+                    zoneInstancesLimit: 5,
+                    zoneRequestsLimit: 100
+                }
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should pass scalingPolicy with only zoneInstancesLimit when provided', async () => {
+        setupMockInputs({
+            ...defaultValues,
+            'revision-zone-instances-limit': '10'
+        })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                scalingPolicy: expect.objectContaining({
+                    zoneInstancesLimit: 10
+                })
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should pass scalingPolicy with only zoneRequestsLimit when provided', async () => {
+        setupMockInputs({
+            ...defaultValues,
+            'revision-zone-requests-limit': '50'
+        })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                scalingPolicy: expect.objectContaining({
+                    zoneRequestsLimit: 50
+                })
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should not pass scalingPolicy when no zone limits are provided', async () => {
+        setupMockInputs(defaultValues)
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.not.objectContaining({
+                scalingPolicy: expect.anything()
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should handle zone limits with value 0', async () => {
+        setupMockInputs({
+            ...defaultValues,
+            'revision-zone-instances-limit': '0',
+            'revision-zone-requests-limit': '0'
+        })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                scalingPolicy: {
+                    zoneInstancesLimit: 0,
+                    zoneRequestsLimit: 0
+                }
             })
         )
         expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
