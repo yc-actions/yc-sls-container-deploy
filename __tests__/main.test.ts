@@ -114,6 +114,7 @@ const defaultValues: Record<string, string> = {
     'revision-log-options-log-group-id': '',
     'revision-log-options-folder-id': '',
     'revision-log-options-min-level': 'INFO',
+    'revision-runtime': 'http',
     public: ''
 }
 
@@ -175,6 +176,32 @@ describe('main run function', () => {
     it('should use IAM token if provided', async () => {
         setupMockInputs({ ...defaultValues, 'yc-sa-json-credentials': '', 'yc-iam-token': 'iam-token' })
         await run()
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should create task revision if runtime is task', async () => {
+        setupMockInputs({ ...defaultValues, 'revision-runtime': 'task' })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                runtime: { task: {} }
+            })
+        )
+        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
+        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(setFailedMock).not.toHaveBeenCalled()
+    })
+
+    it('should handle runtime parameter case-insensitively', async () => {
+        setupMockInputs({ ...defaultValues, 'revision-runtime': 'HTTP' })
+        await run()
+        expect(ContainerServiceMock.deployRevision).toHaveBeenCalledWith(
+            expect.objectContaining({
+                runtime: { http: {} }
+            })
+        )
         expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
         expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
         expect(setFailedMock).not.toHaveBeenCalled()

@@ -64,6 +64,10 @@ inputs:
   revision-env:
     required: false
     description: 'Environment variables. Multiline. Format: VARIABLE=value'
+  revision-runtime:
+    description: 'Revision runtime. Possible values: "http", "task"'
+    default: 'http'
+    required: false
   revision-secrets:
     description: 'Lockbox secrets. Pattern: "<environmentVariable>=<secretId>/<versionId>/<secretKey>". Multiline'
     default: ''
