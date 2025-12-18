@@ -75,6 +75,12 @@ inputs:
   revision-provisioned:
     required: false
     description: 'Minimum count of provisioned instances'
+  revision-zone-instances-limit:
+    required: false
+    description: 'Upper limit for instance count in each availability zone. 0 means no limit'
+  revision-zone-requests-limit:
+    required: false
+    description: 'Upper limit of concurrent requests count in each availability zone. 0 means no limit'
   revision-network-id:
     required: false
     description: 'Network id that will be attached to revision'

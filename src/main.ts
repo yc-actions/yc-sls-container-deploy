@@ -113,6 +113,19 @@ const createRevision = async (
         req.provisionPolicy = { minInstances: revisionInputs.provisioned }
     }
 
+    const scalingPolicy: { zoneInstancesLimit?: number; zoneRequestsLimit?: number } = {}
+
+    if (revisionInputs.zoneInstancesLimit !== undefined) {
+        scalingPolicy.zoneInstancesLimit = revisionInputs.zoneInstancesLimit
+    }
+    if (revisionInputs.zoneRequestsLimit !== undefined) {
+        scalingPolicy.zoneRequestsLimit = revisionInputs.zoneRequestsLimit
+    }
+
+    if (Object.keys(scalingPolicy).length > 0) {
+        req.scalingPolicy = scalingPolicy
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const revisionDeployOperation = await client.deployRevision(DeployContainerRevisionRequest.fromPartial(req as any))
 
@@ -142,6 +155,8 @@ interface IRevisionInputs {
     args: { args: string[] } | undefined
     environment: Environment
     provisioned: number | undefined
+    zoneInstancesLimit?: number
+    zoneRequestsLimit?: number
     secrets: Secret[]
     logOptions: LogOptions
     mounts?: Mount[]
@@ -158,6 +173,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
     const coreFraction: number = Number.parseInt(getInput('revision-core-fraction') || '100', 10)
     const concurrency: number = Number.parseInt(getInput('revision-concurrency') || '1', 10)
     const provisionedRaw: string = getInput('revision-provisioned')
+    const zoneInstancesLimitRaw: string = getInput('revision-zone-instances-limit')
+    const zoneRequestsLimitRaw: string = getInput('revision-zone-requests-limit')
     const executionTimeout: number = Number.parseInt(getInput('revision-execution-timeout') || '3', 10)
     const networkId: string = getInput('revision-network-id')
     const runtime = (getInput('revision-runtime') || 'http').toLowerCase() as 'http' | 'task'
@@ -199,6 +216,16 @@ const parseRevisionInputs = (): IRevisionInputs => {
         provisioned = Number.parseInt(provisionedRaw, 10)
     }
 
+    let zoneInstancesLimit = undefined
+    let zoneRequestsLimit = undefined
+
+    if (zoneInstancesLimitRaw !== '') {
+        zoneInstancesLimit = Number.parseInt(zoneInstancesLimitRaw, 10)
+    }
+    if (zoneRequestsLimitRaw !== '') {
+        zoneRequestsLimit = Number.parseInt(zoneRequestsLimitRaw, 10)
+    }
+
     return {
         imageUrl,
         workingDir,
@@ -212,6 +239,8 @@ const parseRevisionInputs = (): IRevisionInputs => {
         args,
         environment,
         provisioned,
+        zoneInstancesLimit,
+        zoneRequestsLimit,
         secrets,
         networkId,
         logOptions,
