@@ -269,9 +269,7 @@ const makeContainerPublic = async (session: Session, containerId: string): Promi
 }
 
 type ResolutionResult =
-    | { status: 'success'; secret: Secret }
-    | { status: 'fallback'; original: Secret }
-    | { status: 'error'; error: Error }
+    { status: 'success'; secret: Secret } | { status: 'fallback'; original: Secret } | { status: 'error'; error: Error }
 
 const resolveSecretsById = async (session: Session, secrets: Secret[]): Promise<ResolutionResult[]> => {
     const client = session.client(secretService.SecretServiceClient)
