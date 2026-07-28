@@ -51,6 +51,11 @@ jobs:
                   # already enforce formatting and linting, so leave these off.
                   VALIDATE_BIOME_FORMAT: false
                   VALIDATE_BIOME_LINT: false
+                  # dotenv-linter's IncorrectDelimiter and UnorderedKey rules cannot be
+                  # satisfied by .env.example: GitHub Actions names inputs INPUT_<NAME>
+                  # with dashes preserved, so the keys are not ours to rename, and the
+                  # file is grouped by concern to mirror action.yml rather than sorted.
+                  VALIDATE_ENV: false
                   VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
                   VALIDATE_JAVASCRIPT_ES: false
                   VALIDATE_JSCPD: false

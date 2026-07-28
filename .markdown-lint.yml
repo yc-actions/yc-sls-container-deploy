@@ -1,7 +1,35 @@
+# Prettier owns Markdown formatting in this repo and `npm run format:check`
+# gates on it, so rules that would contradict .prettierrc.yml are aligned to it
+# here rather than fought. Everything else stays on.
+
 # Unordered list style
 MD004:
     style: dash
 
-# Ordered list item prefix
+# Nested list indent. Prettier indents by tabWidth (4), markdownlint defaults to 2.
+MD007:
+    indent: 4
+
+# Line length. Prettier wraps prose at printWidth (120); markdownlint defaults to
+# 80. Code blocks and tables are exempt because Prettier does not reflow either.
+MD013:
+    line_length: 120
+    code_blocks: false
+    tables: false
+
+# Ordered list item prefix. This repo numbers 1./2./3. rather than all-ones.
 MD029:
-    style: one
+    style: ordered
+
+# Spaces after list markers. Prettier pads ordered markers to tabWidth, so `1.`
+# is followed by two spaces.
+MD030:
+    ol_single: 2
+    ol_multi: 2
+
+# Emphasis used in place of a heading. Deliberate here: the generated
+# "**Table of Contents**" label and the ADR's "_Last updated_" footer.
+MD036: false
+
+# First line must be a top-level heading. The README opens at h2 by design.
+MD041: false
