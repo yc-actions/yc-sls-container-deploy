@@ -68,6 +68,9 @@ jobs:
               id: package
               run: npm run package
 
+            # The bundle test runs dist/index.js in a subprocess, so Jest
+            # instruments none of src/ here; the global coverage threshold
+            # would otherwise fail this job unconditionally.
             - name: Run Bundle Smoke Test
               id: smoke
-              run: npm run ci-test -- __tests__/bundle.test.ts
+              run: npm run ci-test -- __tests__/bundle.test.ts --coverage=false
