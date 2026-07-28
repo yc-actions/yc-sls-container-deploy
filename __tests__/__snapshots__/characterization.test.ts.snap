@@ -1,0 +1,2408 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`characterization records SDK requests: IAM token credentials 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: both mount kinds together 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [
+          {
+            "ephemeralDiskSpec": {
+              "blockSize": 0,
+              "size": 5368709120,
+            },
+            "mode": 2,
+            "mountPointPath": "/app/tmp",
+            "objectStorage": undefined,
+          },
+          {
+            "ephemeralDiskSpec": undefined,
+            "mode": 1,
+            "mountPointPath": "/mnt/data",
+            "objectStorage": {
+              "bucketId": "my-bucket",
+              "prefix": "",
+            },
+          },
+        ],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: container already exists 1`] = `
+{
+  "createContainer": [],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "existing-container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "existing-container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: container creation fails 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "fail",
+      },
+    ],
+  ],
+  "deployRevision": [],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "fail"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [
+    [
+      "error:failed to create container",
+    ],
+  ],
+  "setOutput": [],
+}
+`;
+
+exports[`characterization records SDK requests: environment variables 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {
+            "DATABASE_URL": "postgres://u:p@h:5432/db?sslmode=verify-full",
+            "FOO": "BAR",
+          },
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: ephemeral mounts 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [
+          {
+            "ephemeralDiskSpec": {
+              "blockSize": 0,
+              "size": 5368709120,
+            },
+            "mode": 2,
+            "mountPointPath": "/app/tmp",
+            "objectStorage": undefined,
+          },
+          {
+            "ephemeralDiskSpec": {
+              "blockSize": 0,
+              "size": 536870912,
+            },
+            "mode": 2,
+            "mountPointPath": "/app/cache",
+            "objectStorage": undefined,
+          },
+        ],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: log options disabled with group id and min level 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": true,
+          "folderId": undefined,
+          "logGroupId": "logsgroupid",
+          "minLevel": 4,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: log options with folder id 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": "logfolderid",
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: log options with group id and folder id both set 1`] = `
+{
+  "createContainer": [],
+  "deployRevision": [],
+  "getSecret": [],
+  "listContainers": [],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [
+    [
+      "error:revision-log-options-log-group-id and revision-log-options-folder-id cannot be set at the same time",
+    ],
+  ],
+  "setOutput": [],
+}
+`;
+
+exports[`characterization records SDK requests: memory and cores and core fraction 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 8,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 30,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 50,
+          "cores": 4,
+          "memory": 2147483648,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: network id 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": {
+          "networkId": "networkid",
+          "subnetIds": [],
+        },
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: no credentials at all 1`] = `
+{
+  "createContainer": [],
+  "deployRevision": [],
+  "getSecret": [],
+  "listContainers": [],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [
+    [
+      "error:No credentials",
+    ],
+  ],
+  "setOutput": [],
+}
+`;
+
+exports[`characterization records SDK requests: provisioned instances 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": {
+          "minInstances": 2,
+        },
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: public container 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [
+    [
+      {
+        "accessBindings": [
+          {
+            "roleId": "serverless.containers.invoker",
+            "subject": {
+              "id": "allUsers",
+              "type": "system",
+            },
+          },
+        ],
+        "resourceId": "container-id",
+      },
+    ],
+  ],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: public set to the string false - still public 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [
+    [
+      {
+        "accessBindings": [
+          {
+            "roleId": "serverless.containers.invoker",
+            "subject": {
+              "id": "allUsers",
+              "type": "system",
+            },
+          },
+        ],
+        "resourceId": "container-id",
+      },
+    ],
+  ],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: required inputs only, SA JSON credentials 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: revision service account id 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "serviceaccountid",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: runtime HTTP uppercase 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: runtime task 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": undefined,
+          "task": {},
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: scaling policy with both zone limits 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": {
+          "zoneInstancesLimit": 5,
+          "zoneRequestsLimit": 100,
+        },
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: scaling policy with both zone limits set to zero 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": {
+          "zoneInstancesLimit": 0,
+          "zoneRequestsLimit": 0,
+        },
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: scaling policy with only zone instances limit 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": {
+          "zoneInstancesLimit": 10,
+          "zoneRequestsLimit": 0,
+        },
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: scaling policy with only zone requests limit 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": {
+          "zoneInstancesLimit": 0,
+          "zoneRequestsLimit": 50,
+        },
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: secrets with explicit version 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [
+          {
+            "environmentVariable": "ENV_VAR_1",
+            "id": "secret-id",
+            "key": "VAR_1",
+            "versionId": "verid",
+          },
+        ],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: secrets with latest falling back to lookup by name 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [
+          {
+            "environmentVariable": "ENV_VAR_1",
+            "id": "secret-1",
+            "key": "VAR_1",
+            "versionId": "version-abc",
+          },
+        ],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [
+    [
+      {
+        "secretId": "secret-one",
+      },
+    ],
+  ],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [
+    [
+      {
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: secrets with latest resolved by id 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [
+          {
+            "environmentVariable": "ENV_VAR_1",
+            "id": "secret-1",
+            "key": "VAR_1",
+            "versionId": "version-abc",
+          },
+        ],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [
+    [
+      {
+        "secretId": "secret-1",
+      },
+    ],
+  ],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: secrets with latest that cannot be resolved 1`] = `
+{
+  "createContainer": [],
+  "deployRevision": [],
+  "getSecret": [
+    [
+      {
+        "secretId": "missing-secret",
+      },
+    ],
+  ],
+  "listContainers": [],
+  "listSecrets": [
+    [
+      {
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "setAccessBindings": [],
+  "setFailed": [
+    [
+      "error:Failed to resolve latest versions for secrets: Failed to resolve secret: missing-secret",
+    ],
+  ],
+  "setOutput": [],
+}
+`;
+
+exports[`characterization records SDK requests: storage mounts 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [
+          {
+            "ephemeralDiskSpec": undefined,
+            "mode": 1,
+            "mountPointPath": "/mnt/photos",
+            "objectStorage": {
+              "bucketId": "my-bucket",
+              "prefix": "photos",
+            },
+          },
+          {
+            "ephemeralDiskSpec": undefined,
+            "mode": 1,
+            "mountPointPath": "/mnt/other",
+            "objectStorage": {
+              "bucketId": "other-bucket",
+              "prefix": "",
+            },
+          },
+        ],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: working dir, commands and args 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": {
+            "args": [
+              "server",
+              "--port=8080",
+            ],
+          },
+          "command": {
+            "command": [
+              "/bin/sh",
+              "-c",
+            ],
+          },
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "/app",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
+
+exports[`characterization records SDK requests: workload identity federation credentials 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "setAccessBindings": [],
+  "setFailed": [],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+    [
+      "rev",
+      "revision-id",
+    ],
+  ],
+}
+`;
