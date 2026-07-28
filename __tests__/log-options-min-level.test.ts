@@ -2,7 +2,7 @@ import { expect, test } from '@jest/globals'
 import { getInput } from '@actions/core'
 import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/logging/v1/log_entry'
 
-import { parseLogOptionsMinLevel } from '../src/log-options-min-level'
+import { parseLogOptionsMinLevel } from '../src/log-options-min-level.js'
 
 const levelsArray = ['LEVEL_UNSPECIFIED', 'TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'] as Array<
     keyof typeof LogLevel_Level
@@ -25,7 +25,8 @@ test.each(levelsArray)('should return correct enum for LogLevel = %s', (level: k
 test('should throw an error if value is invalid', () => {
     try {
         parseLogOptionsMinLevel('invalidKey')
-    } catch (e: any) {
-        expect(e.message).toEqual('revision-log-options-min-level has unknown value')
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual('revision-log-options-min-level has unknown value')
     }
 })

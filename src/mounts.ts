@@ -2,7 +2,7 @@ import {
     Mount,
     Mount_Mode
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
-import { parseMemory } from './memory'
+import { parseMemory } from './memory.js'
 
 const DELIMITER = ':'
 const PATH_DELIMITER = '/'

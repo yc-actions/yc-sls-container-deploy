@@ -34,10 +34,10 @@ import {
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
 import { LogLevel_Level } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/logging/v1/log_entry'
 import { SetAccessBindingsRequest } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/access/access'
-import { parseMemory } from './memory'
-import { parseLogOptionsMinLevel } from './log-options-min-level'
-import { parseMounts } from './mounts'
-import { fromServiceAccountJsonFile } from './service-account-json'
+import { parseMemory } from './memory.js'
+import { parseLogOptionsMinLevel } from './log-options-min-level.js'
+import { parseMounts } from './mounts.js'
+import { fromServiceAccountJsonFile } from './service-account-json.js'
 import { SessionConfig } from '@yandex-cloud/nodejs-sdk/dist/types'
 
 type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } : T
