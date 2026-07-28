@@ -49,7 +49,7 @@ const SA_JSON = `{
 /**
  * The defaults action.yml declares, which the runner always supplies. Included
  * explicitly so the snapshot records what really reaches the code rather than
- * relying on the `|| '1'` fallbacks inside parseRevisionInputs.
+ * relying on the `|| '1'` fallbacks inside readInputs.
  */
 const BASE: Record<string, string> = {
     'folder-id': 'folderid',
@@ -277,12 +277,13 @@ const SCENARIOS: Array<{ name: string; inputs: Record<string, string>; setup?: (
         inputs: { ...BASE, ...CREDS },
         // The fixture's built-in `req.description === 'fail'` trigger (see
         // __fixtures__/yandex-sdk/serverless-containers-v1.ts) is unreachable
-        // through run(): src/main.ts's createRevision never sets a description on the deploy
-        // request - only createContainer does, and that's derived from repo.owner/repo.repo, not
-        // user input. So this scenario drives the failure directly, by reconfiguring the already-
-        // imported ContainerServiceMock.deployRevision for one call to return an operation with no
-        // `response` (the same shape the mock itself uses for its `create` failure branch), which
-        // sends src/main.ts:134-138 down the `error('failed to create revision')` / throw path.
+        // through run(): src/container/revision.ts's deployRevision never sets a description on the
+        // deploy request - only src/container/create.ts's createContainer does, and that's derived
+        // from repo.owner/repo.repo, not user input. So this scenario drives the failure directly,
+        // by reconfiguring the already-imported ContainerServiceMock.deployRevision for one call to
+        // return an operation with no `response` (the same shape the mock itself uses for its
+        // `create` failure branch), which sends the tail of deployRevision down the
+        // `error('failed to create revision')` / throw path.
         setup: () =>
             ContainerServiceMock.deployRevision.mockImplementationOnce(async () =>
                 Operation.fromJSON({
@@ -325,8 +326,9 @@ describe('characterization', () => {
                 setAccessBindings: normalize(ContainerServiceMock.setAccessBindings.mock.calls),
                 getSecret: normalize(SecretServiceMock.get.mock.calls),
                 listSecrets: normalize(SecretServiceMock.list.mock.calls),
-                // These two exist to catch the credential chain (src/main.ts:399-420) and the WIF
-                // token exchange (src/main.ts:540-565). Without them, the SA-JSON/IAM-token/WIF
+                // These two exist to catch the credential chain (resolveSessionConfig in
+                // src/main.ts) and the WIF token exchange (exchangeToken in src/auth.ts).
+                // Without them, the SA-JSON/IAM-token/WIF
                 // scenarios are indistinguishable in the snapshot, since sessionConfig never reaches
                 // any SDK service call. Do not remove as "noise".
                 session: normalize(sdk.Session.mock.calls),

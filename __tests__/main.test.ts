@@ -11,6 +11,8 @@ import {
     ContainerServiceMock
 } from '../__fixtures__/yandex-sdk/serverless-containers-v1.js'
 import { __setGetSecretFail, __setSecretList, secretService } from '../__fixtures__/yandex-sdk/lockbox-v1.js'
+// Type-only: erased at compile time, so it does not load src/parse/ before the mocks below.
+import type { Secret } from '../src/parse/index.js'
 
 jest.unstable_mockModule('@actions/core', () => core)
 jest.unstable_mockModule('@actions/github', () => github)
@@ -19,8 +21,12 @@ jest.unstable_mockModule('@yandex-cloud/nodejs-sdk', () => sdk)
 jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/serverless-containers-v1', () => ({ containerService }))
 jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/lockbox-v1', () => ({ secretService }))
 
-const { parseEnvironment, parseLockboxVariablesMapping, run } = await import('../src/main.js')
-type Secret = import('../src/main.js').Secret
+// Imported dynamically, after the mock registrations above. A static import would be linked
+// before them, binding src/parse/lockbox-variables.ts to the real @actions/core and leaving two
+// instances of that module in this file - the real `info` would then swallow the calls the mock
+// is supposed to record.
+const { parseEnvironment, parseLockboxVariablesMapping } = await import('../src/parse/index.js')
+const { run } = await import('../src/main.js')
 
 beforeEach(() => {
     jest.clearAllMocks()

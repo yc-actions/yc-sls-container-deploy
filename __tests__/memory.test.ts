@@ -1,5 +1,5 @@
 import { expect, test } from '@jest/globals'
-import { GB, MB, parseMemory } from '../src/memory.js'
+import { GB, MB, parseMemory } from '../src/parse/memory.js'
 
 const mbs = ['mb', 'MB', ' mb']
 const gbs = ['GB', 'Gb', ' gb']

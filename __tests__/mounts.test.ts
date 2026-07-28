@@ -1,5 +1,5 @@
 import { expect, test } from '@jest/globals'
-import { parseMounts } from '../src/mounts.js'
+import { parseMounts } from '../src/parse/mounts.js'
 import { Mount_Mode } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
 
 test('should return undefined when no mounts are provided', () => {
