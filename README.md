@@ -10,6 +10,7 @@ image name and tag.
 - [Usage](#usage)
 - [Secrets](#secrets)
 - [Permissions](#permissions)
+- [Development](#development)
 - [License Summary](#license-summary)
 
 <!-- tocstop -->
@@ -17,7 +18,7 @@ image name and tag.
 ## Usage
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v7
 
 - name: Get Yandex Cloud IAM token
   id: get-iam-token
@@ -43,7 +44,7 @@ image name and tag.
 
 - name: Deploy Serverless Container
   id: deploy-sls-container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       yc-sa-id: aje***
       container-name: yc-action-demo
@@ -88,7 +89,7 @@ Add `revision-ephemeral-mounts` with one or more lines using the format `MOUNT_P
 ```yaml
 - name: Deploy Serverless Container
   id: deploy-sls-container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       # ... other parameters ...
       revision-ephemeral-mounts: |
@@ -133,7 +134,7 @@ the secret definition using `#`.
 
 ```yaml
 - name: Deploy Serverless Container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       # ... other parameters ...
       revision-secrets: |
@@ -145,7 +146,7 @@ the secret definition using `#`.
 
 ```yaml
 - name: Deploy Serverless Container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       # ... other parameters ...
       revision-secrets: |
@@ -161,7 +162,7 @@ You can use the same secret key with different versions and map them to differen
 
 ```yaml
 - name: Deploy Serverless Container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       # ... other parameters ...
       revision-secrets: |
@@ -181,7 +182,7 @@ You can add comments to document your secrets:
 
 ```yaml
 - name: Deploy Serverless Container
-  uses: yc-actions/yc-sls-container-deploy@v4
+  uses: yc-actions/yc-sls-container-deploy@v5
   with:
       # ... other parameters ...
       revision-secrets: |
@@ -235,6 +236,23 @@ The service account provided to container via `revision-service-account-id` para
 | `storage.editor`              | To mount the bucket to the container in read-write mode.            |
 | `lockbox.payloadViewer`       | To access the Lockbox secrets.                                      |
 | `kms.keys.encrypterDecrypter` | To decrypt the Lockbox secrets, if they are encrypted with KMS key. |
+
+## Development
+
+This project requires Node.js 24; see `.node-version` (currently `24.9.0`) if you use a version manager such as `nvm` or
+`fnm`.
+
+- `npm run bundle` - format, then rebuild `dist/index.js` with Rollup. Run this before committing any change under
+  `src/`.
+- `npm test` - run the Jest suite.
+- `npm run lint` - run ESLint.
+- `npm run format:write` - format the repository with Prettier.
+- `npm run local-action` - run the action locally via `@github/local-action`. Copy `.env.example` to `.env` and fill in
+  the inputs you need first.
+
+Coverage thresholds in `jest.config.js` are enforced across the whole suite. Running a single test file (e.g.
+`npm test -- __tests__/some.test.ts`) will fail that global threshold even when the file itself passes; add
+`--coverage=false` for single-file runs during local development.
 
 ## License Summary
 
