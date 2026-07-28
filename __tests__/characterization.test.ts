@@ -10,9 +10,11 @@ import { beforeEach, afterEach, describe, expect, it, jest } from '@jest/globals
 import * as core from '@actions/core'
 import { context } from '@actions/github'
 import axios from 'axios'
-import { SpiedFunction } from 'jest-mock'
+import { MockedClass, SpiedFunction } from 'jest-mock'
+import { Session } from '@yandex-cloud/nodejs-sdk'
 import { Secret as LockboxSecret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
 import { Container } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
+import { Operation } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/operation/operation'
 
 import { run } from '../src/main'
 import { normalize } from '../__fixtures__/normalize-request'
@@ -74,7 +76,7 @@ function lockboxSecret(id: string, name: string, versionId: string): LockboxSecr
     } as LockboxSecret
 }
 
-const SCENARIOS: { name: string; inputs: Record<string, string>; setup?: () => void }[] = [
+const SCENARIOS: Array<{ name: string; inputs: Record<string, string>; setup?: () => void }> = [
     {
         name: 'required inputs only, SA JSON credentials',
         inputs: { ...BASE, ...CREDS }
@@ -257,20 +259,34 @@ const SCENARIOS: { name: string; inputs: Record<string, string>; setup?: () => v
     {
         name: 'container creation fails',
         inputs: { ...BASE, ...CREDS, 'container-name': 'fail' }
+    },
+    {
+        name: 'revision deploy fails',
+        inputs: { ...BASE, ...CREDS },
+        // The mock's built-in `req.description === 'fail'` trigger (see
+        // __tests__/__mocks__/@yandex-cloud/nodejs-sdk/serverless-containers-v1.ts) is unreachable
+        // through run(): src/main.ts's createRevision never sets a description on the deploy
+        // request - only createContainer does, and that's derived from repo.owner/repo.repo, not
+        // user input. So this scenario drives the failure directly, by reconfiguring the already-
+        // imported ContainerServiceMock.deployRevision for one call to return an operation with no
+        // `response` (the same shape the mock itself uses for its `create` failure branch), which
+        // sends src/main.ts:134-138 down the `error('failed to create revision')` / throw path.
+        setup: () =>
+            ContainerServiceMock.deployRevision.mockImplementationOnce(async () =>
+                Operation.fromJSON({
+                    id: 'operationid',
+                    error: {},
+                    done: true
+                })
+            )
     }
-    // 'revision deploy fails' is intentionally omitted. The mock's deployRevision only fails when
-    // req.description === 'fail' (see __tests__/__mocks__/@yandex-cloud/nodejs-sdk/serverless-containers-v1.ts),
-    // but src/main.ts's createRevision never sets a description on the deploy request - only
-    // createContainer does, and that's derived from repo.owner/repo.repo, not user input. No
-    // combination of scenario inputs/setup can reach that branch without editing src/main.ts or
-    // __tests__/__mocks__/, both of which this task must not touch. Verified empirically: the
-    // scenario from the brief (empty revision-image-url) deploys successfully with setFailed: [].
-    // 'container creation fails' already covers the failure path end-to-end.
 ]
 
 describe('characterization', () => {
     let setOutputMock: SpiedFunction<(name: string, value: unknown) => void>
     let setFailedMock: SpiedFunction<(message: string | Error) => void>
+    let sessionMock: MockedClass<typeof Session>
+    let axiosPostMock: SpiedFunction<typeof axios.post>
 
     beforeEach(() => {
         process.env.GITHUB_REPOSITORY = 'owner/repo'
@@ -281,7 +297,7 @@ describe('characterization', () => {
         setFailedMock = jest.spyOn(core, 'setFailed').mockImplementation(() => {})
         setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation(() => {})
         jest.spyOn(core, 'getIDToken').mockImplementation(async () => 'github-token')
-        jest.spyOn(axios, 'post').mockImplementation(async () => ({
+        axiosPostMock = jest.spyOn(axios, 'post').mockImplementation(async () => ({
             status: 200,
             statusText: 'OK',
             data: { access_token: 'iam-token' },
@@ -289,6 +305,7 @@ describe('characterization', () => {
             config: {}
         }))
         jest.spyOn(context, 'repo', 'get').mockReturnValue({ owner: 'some-owner', repo: 'some-repo' })
+        sessionMock = jest.mocked(Session)
 
         __setContainerList([])
         __setRevisionList([])
@@ -318,6 +335,12 @@ describe('characterization', () => {
                 setAccessBindings: normalize(ContainerServiceMock.setAccessBindings.mock.calls),
                 getSecret: normalize(SecretServiceMock.get.mock.calls),
                 listSecrets: normalize(SecretServiceMock.list.mock.calls),
+                // These two exist to catch the credential chain (src/main.ts:399-420) and the WIF
+                // token exchange (src/main.ts:540-565). Without them, the SA-JSON/IAM-token/WIF
+                // scenarios are indistinguishable in the snapshot, since sessionConfig never reaches
+                // any SDK service call. Do not remove as "noise".
+                session: normalize(sessionMock.mock.calls),
+                tokenExchange: normalize(axiosPostMock.mock.calls),
                 setOutput: normalize(setOutputMock.mock.calls),
                 setFailed: normalize(setFailedMock.mock.calls)
             }).toMatchSnapshot()

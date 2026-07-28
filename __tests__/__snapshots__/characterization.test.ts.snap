@@ -68,6 +68,13 @@ exports[`characterization records SDK requests: IAM token credentials 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "iamToken": "iam-token-input",
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -80,6 +87,7 @@ exports[`characterization records SDK requests: IAM token credentials 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -170,6 +178,17 @@ exports[`characterization records SDK requests: both mount kinds together 1`] = 
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -182,6 +201,7 @@ exports[`characterization records SDK requests: both mount kinds together 1`] = 
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -244,6 +264,17 @@ exports[`characterization records SDK requests: container already exists 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -256,6 +287,7 @@ exports[`characterization records SDK requests: container already exists 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -284,6 +316,17 @@ exports[`characterization records SDK requests: container creation fails 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [
     [
@@ -291,6 +334,7 @@ exports[`characterization records SDK requests: container creation fails 1`] = `
     ],
   ],
   "setOutput": [],
+  "tokenExchange": [],
 }
 `;
 
@@ -365,6 +409,17 @@ exports[`characterization records SDK requests: environment variables 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -377,6 +432,7 @@ exports[`characterization records SDK requests: environment variables 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -467,6 +523,17 @@ exports[`characterization records SDK requests: ephemeral mounts 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -479,6 +546,7 @@ exports[`characterization records SDK requests: ephemeral mounts 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -550,6 +618,17 @@ exports[`characterization records SDK requests: log options disabled with group 
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -562,6 +641,7 @@ exports[`characterization records SDK requests: log options disabled with group 
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -633,6 +713,17 @@ exports[`characterization records SDK requests: log options with folder id 1`] =
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -645,6 +736,7 @@ exports[`characterization records SDK requests: log options with folder id 1`] =
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -655,6 +747,17 @@ exports[`characterization records SDK requests: log options with group id and fo
   "getSecret": [],
   "listContainers": [],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [
     [
@@ -662,6 +765,7 @@ exports[`characterization records SDK requests: log options with group id and fo
     ],
   ],
   "setOutput": [],
+  "tokenExchange": [],
 }
 `;
 
@@ -733,6 +837,17 @@ exports[`characterization records SDK requests: memory and cores and core fracti
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -745,6 +860,7 @@ exports[`characterization records SDK requests: memory and cores and core fracti
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -819,6 +935,17 @@ exports[`characterization records SDK requests: network id 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -831,6 +958,7 @@ exports[`characterization records SDK requests: network id 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -841,6 +969,7 @@ exports[`characterization records SDK requests: no credentials at all 1`] = `
   "getSecret": [],
   "listContainers": [],
   "listSecrets": [],
+  "session": [],
   "setAccessBindings": [],
   "setFailed": [
     [
@@ -848,6 +977,7 @@ exports[`characterization records SDK requests: no credentials at all 1`] = `
     ],
   ],
   "setOutput": [],
+  "tokenExchange": [],
 }
 `;
 
@@ -921,6 +1051,17 @@ exports[`characterization records SDK requests: provisioned instances 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -933,6 +1074,7 @@ exports[`characterization records SDK requests: provisioned instances 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1004,6 +1146,17 @@ exports[`characterization records SDK requests: public container 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [
     [
       {
@@ -1031,6 +1184,7 @@ exports[`characterization records SDK requests: public container 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1102,6 +1256,17 @@ exports[`characterization records SDK requests: public set to the string false -
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [
     [
       {
@@ -1129,6 +1294,7 @@ exports[`characterization records SDK requests: public set to the string false -
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1200,6 +1366,17 @@ exports[`characterization records SDK requests: required inputs only, SA JSON cr
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1212,6 +1389,102 @@ exports[`characterization records SDK requests: required inputs only, SA JSON cr
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
+}
+`;
+
+exports[`characterization records SDK requests: revision deploy fails 1`] = `
+{
+  "createContainer": [
+    [
+      {
+        "description": "Created from: some-owner/some-repo",
+        "folderId": "folderid",
+        "labels": {},
+        "name": "my-container",
+      },
+    ],
+  ],
+  "deployRevision": [
+    [
+      {
+        "asyncInvocationConfig": undefined,
+        "concurrency": 1,
+        "connectivity": undefined,
+        "containerId": "container-id",
+        "description": "",
+        "executionTimeout": {
+          "nanos": 0,
+          "seconds": 3,
+        },
+        "imageSpec": {
+          "args": undefined,
+          "command": undefined,
+          "environment": {},
+          "imageUrl": "cr.yandex/crpxxx/my-image:latest",
+          "workingDir": "",
+        },
+        "logOptions": {
+          "disabled": false,
+          "folderId": undefined,
+          "logGroupId": undefined,
+          "minLevel": 0,
+        },
+        "metadataOptions": undefined,
+        "mounts": [],
+        "provisionPolicy": undefined,
+        "resources": {
+          "coreFraction": 100,
+          "cores": 1,
+          "memory": 134217728,
+        },
+        "runtime": {
+          "http": {},
+          "task": undefined,
+        },
+        "scalingPolicy": undefined,
+        "secrets": [],
+        "serviceAccountId": "",
+        "storageMounts": [],
+      },
+    ],
+  ],
+  "getSecret": [],
+  "listContainers": [
+    [
+      {
+        "filter": "name = "my-container"",
+        "folderId": "folderid",
+        "pageSize": 100,
+        "pageToken": "",
+      },
+    ],
+  ],
+  "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
+  "setAccessBindings": [],
+  "setFailed": [
+    [
+      "error:failed to create revision",
+    ],
+  ],
+  "setOutput": [
+    [
+      "id",
+      "container-id",
+    ],
+  ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1283,6 +1556,17 @@ exports[`characterization records SDK requests: revision service account id 1`] 
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1295,6 +1579,7 @@ exports[`characterization records SDK requests: revision service account id 1`] 
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1366,6 +1651,17 @@ exports[`characterization records SDK requests: runtime HTTP uppercase 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1378,6 +1674,7 @@ exports[`characterization records SDK requests: runtime HTTP uppercase 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1449,6 +1746,17 @@ exports[`characterization records SDK requests: runtime task 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1461,6 +1769,7 @@ exports[`characterization records SDK requests: runtime task 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1535,6 +1844,17 @@ exports[`characterization records SDK requests: scaling policy with both zone li
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1547,6 +1867,7 @@ exports[`characterization records SDK requests: scaling policy with both zone li
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1621,6 +1942,17 @@ exports[`characterization records SDK requests: scaling policy with both zone li
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1633,6 +1965,7 @@ exports[`characterization records SDK requests: scaling policy with both zone li
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1707,6 +2040,17 @@ exports[`characterization records SDK requests: scaling policy with only zone in
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1719,6 +2063,7 @@ exports[`characterization records SDK requests: scaling policy with only zone in
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1793,6 +2138,17 @@ exports[`characterization records SDK requests: scaling policy with only zone re
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1805,6 +2161,7 @@ exports[`characterization records SDK requests: scaling policy with only zone re
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1883,6 +2240,17 @@ exports[`characterization records SDK requests: secrets with explicit version 1`
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1895,6 +2263,7 @@ exports[`characterization records SDK requests: secrets with explicit version 1`
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -1987,6 +2356,17 @@ exports[`characterization records SDK requests: secrets with latest falling back
       },
     ],
   ],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -1999,6 +2379,7 @@ exports[`characterization records SDK requests: secrets with latest falling back
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -2083,6 +2464,17 @@ exports[`characterization records SDK requests: secrets with latest resolved by 
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -2095,6 +2487,7 @@ exports[`characterization records SDK requests: secrets with latest resolved by 
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -2119,6 +2512,17 @@ exports[`characterization records SDK requests: secrets with latest that cannot 
       },
     ],
   ],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [
     [
@@ -2126,6 +2530,7 @@ exports[`characterization records SDK requests: secrets with latest that cannot 
     ],
   ],
   "setOutput": [],
+  "tokenExchange": [],
 }
 `;
 
@@ -2216,6 +2621,17 @@ exports[`characterization records SDK requests: storage mounts 1`] = `
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -2228,6 +2644,7 @@ exports[`characterization records SDK requests: storage mounts 1`] = `
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -2309,6 +2726,17 @@ exports[`characterization records SDK requests: working dir, commands and args 1
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "serviceAccountJson": {
+          "accessKeyId": "id",
+          "privateKey": "private_key",
+          "serviceAccountId": "service_account_id",
+        },
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -2321,6 +2749,7 @@ exports[`characterization records SDK requests: working dir, commands and args 1
       "revision-id",
     ],
   ],
+  "tokenExchange": [],
 }
 `;
 
@@ -2392,6 +2821,13 @@ exports[`characterization records SDK requests: workload identity federation cre
     ],
   ],
   "listSecrets": [],
+  "session": [
+    [
+      {
+        "iamToken": "iam-token",
+      },
+    ],
+  ],
   "setAccessBindings": [],
   "setFailed": [],
   "setOutput": [
@@ -2402,6 +2838,23 @@ exports[`characterization records SDK requests: workload identity federation cre
     [
       "rev",
       "revision-id",
+    ],
+  ],
+  "tokenExchange": [
+    [
+      "https://auth.yandex.cloud/oauth/token",
+      {
+        "audience": "wif-sa-id",
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "subject_token": "github-token",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:id_token",
+      },
+      {
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      },
     ],
   ],
 }
