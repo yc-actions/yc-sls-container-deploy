@@ -5,25 +5,37 @@
  * and snapshots it. The snapshot is captured on the pre-rewrite code and must be
  * reproduced byte-identically by the rewritten code.
  */
-import { beforeEach, afterEach, describe, expect, it, jest } from '@jest/globals'
-// eslint-disable-next-line import/no-namespace
-import * as core from '@actions/core'
-import { context } from '@actions/github'
-import axios from 'axios'
-import { MockedClass, SpiedFunction } from 'jest-mock'
-import { Session } from '@yandex-cloud/nodejs-sdk'
+import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { Secret as LockboxSecret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
 import { Container } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
 import { Operation } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/operation/operation'
 
-import { run } from '../src/main'
-import { normalize } from '../__fixtures__/normalize-request'
+import { normalize } from '../__fixtures__/normalize-request.js'
+import * as core from '../__fixtures__/core.js'
+import * as github from '../__fixtures__/github.js'
+import * as axios from '../__fixtures__/axios.js'
+import * as sdk from '../__fixtures__/yandex-sdk/index.js'
 import {
     __setContainerList,
     __setRevisionList,
+    containerService,
     ContainerServiceMock
-} from './__mocks__/@yandex-cloud/nodejs-sdk/serverless-containers-v1'
-import { __setGetSecretFail, __setSecretList, SecretServiceMock } from './__mocks__/@yandex-cloud/nodejs-sdk/lockbox-v1'
+} from '../__fixtures__/yandex-sdk/serverless-containers-v1.js'
+import {
+    __setGetSecretFail,
+    __setSecretList,
+    secretService,
+    SecretServiceMock
+} from '../__fixtures__/yandex-sdk/lockbox-v1.js'
+
+jest.unstable_mockModule('@actions/core', () => core)
+jest.unstable_mockModule('@actions/github', () => github)
+jest.unstable_mockModule('axios', () => axios)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk', () => sdk)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/serverless-containers-v1', () => ({ containerService }))
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/lockbox-v1', () => ({ secretService }))
+
+const { run } = await import('../src/main.js')
 
 const SA_JSON = `{
     "id": "id",
@@ -263,8 +275,8 @@ const SCENARIOS: Array<{ name: string; inputs: Record<string, string>; setup?: (
     {
         name: 'revision deploy fails',
         inputs: { ...BASE, ...CREDS },
-        // The mock's built-in `req.description === 'fail'` trigger (see
-        // __tests__/__mocks__/@yandex-cloud/nodejs-sdk/serverless-containers-v1.ts) is unreachable
+        // The fixture's built-in `req.description === 'fail'` trigger (see
+        // __fixtures__/yandex-sdk/serverless-containers-v1.ts) is unreachable
         // through run(): src/main.ts's createRevision never sets a description on the deploy
         // request - only createContainer does, and that's derived from repo.owner/repo.repo, not
         // user input. So this scenario drives the failure directly, by reconfiguring the already-
@@ -283,29 +295,11 @@ const SCENARIOS: Array<{ name: string; inputs: Record<string, string>; setup?: (
 ]
 
 describe('characterization', () => {
-    let setOutputMock: SpiedFunction<(name: string, value: unknown) => void>
-    let setFailedMock: SpiedFunction<(message: string | Error) => void>
-    let sessionMock: MockedClass<typeof Session>
-    let axiosPostMock: SpiedFunction<typeof axios.post>
-
     beforeEach(() => {
         process.env.GITHUB_REPOSITORY = 'owner/repo'
 
         jest.clearAllMocks()
-        jest.spyOn(core, 'info').mockImplementation(() => {})
-        jest.spyOn(core, 'error').mockImplementation(() => {})
-        setFailedMock = jest.spyOn(core, 'setFailed').mockImplementation(() => {})
-        setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation(() => {})
-        jest.spyOn(core, 'getIDToken').mockImplementation(async () => 'github-token')
-        axiosPostMock = jest.spyOn(axios, 'post').mockImplementation(async () => ({
-            status: 200,
-            statusText: 'OK',
-            data: { access_token: 'iam-token' },
-            headers: {},
-            config: {}
-        }))
-        jest.spyOn(context, 'repo', 'get').mockReturnValue({ owner: 'some-owner', repo: 'some-repo' })
-        sessionMock = jest.mocked(Session)
+        core.getIDToken.mockImplementation(async () => 'github-token')
 
         __setContainerList([])
         __setRevisionList([])
@@ -313,15 +307,11 @@ describe('characterization', () => {
         __setGetSecretFail(false)
     })
 
-    afterEach(() => {
-        jest.restoreAllMocks()
-    })
-
     for (const scenario of SCENARIOS) {
         it(`records SDK requests: ${scenario.name}`, async () => {
-            jest.spyOn(core, 'getInput').mockImplementation((name: string) => scenario.inputs[name] || '')
-            jest.spyOn(core, 'getBooleanInput').mockImplementation((name: string) => scenario.inputs[name] === 'true')
-            jest.spyOn(core, 'getMultilineInput').mockImplementation((name: string) =>
+            core.getInput.mockImplementation((name: string) => scenario.inputs[name] || '')
+            core.getBooleanInput.mockImplementation((name: string) => scenario.inputs[name] === 'true')
+            core.getMultilineInput.mockImplementation((name: string) =>
                 scenario.inputs[name] ? scenario.inputs[name].split('\n') : []
             )
             scenario.setup?.()
@@ -339,10 +329,10 @@ describe('characterization', () => {
                 // token exchange (src/main.ts:540-565). Without them, the SA-JSON/IAM-token/WIF
                 // scenarios are indistinguishable in the snapshot, since sessionConfig never reaches
                 // any SDK service call. Do not remove as "noise".
-                session: normalize(sessionMock.mock.calls),
-                tokenExchange: normalize(axiosPostMock.mock.calls),
-                setOutput: normalize(setOutputMock.mock.calls),
-                setFailed: normalize(setFailedMock.mock.calls)
+                session: normalize(sdk.Session.mock.calls),
+                tokenExchange: normalize(axios.post.mock.calls),
+                setOutput: normalize(core.setOutput.mock.calls),
+                setFailed: normalize(core.setFailed.mock.calls)
             }).toMatchSnapshot()
         })
     }
