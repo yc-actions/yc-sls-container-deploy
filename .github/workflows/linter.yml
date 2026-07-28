@@ -43,8 +43,16 @@ jobs:
                   DEFAULT_BRANCH: main
                   FILTER_REGEX_EXCLUDE: dist/**/*
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  LINTER_RULES_PATH: .
                   VALIDATE_ALL_CODEBASE: false
+                  # Biome ignores LINTER_RULES_PATH and applies its own defaults (tabs, 80
+                  # columns, double quotes, semicolons), which contradict this repo's
+                  # Prettier config. format:check and lint (via the TypeScript Tests job)
+                  # already enforce formatting and linting, so leave these off.
+                  VALIDATE_BIOME_FORMAT: false
+                  VALIDATE_BIOME_LINT: false
+                  VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
                   VALIDATE_JAVASCRIPT_ES: false
                   VALIDATE_JSCPD: false
+                  VALIDATE_JSON: false
                   VALIDATE_TYPESCRIPT_ES: false
-                  VALIDATE_TYPESCRIPT_STANDARD: false

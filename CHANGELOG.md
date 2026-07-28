@@ -10,6 +10,7 @@
   `dist/index.js` could be merged.
 - `dist/` no longer ships the `@grpc/grpc-js` `.proto` files. They were only reachable through channelz and ORCA load
   reporting, neither of which a client-only action enables.
+- `dist/licenses.txt` is no longer generated. It was an artifact of ncc; Rollup does not produce one.
 
 ### Notes
 
