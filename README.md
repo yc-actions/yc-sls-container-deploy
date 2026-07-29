@@ -222,8 +222,8 @@ Additionally, you may need to grant the following optional roles depending on yo
 | `iam.serviceAccounts.user`    | Providing the service account ID in parameters, ensuring access to the service account                                          |
 | `vpc.user`                    | Deploying the container in a VPC with a specified network ID                                                                    |
 | `serverless-containers.admin` | Making the container public                                                                                                     |
-| `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionnaly |
-| `lockbox.payloadViewer`       | To access Lockbox secrets during deployment. Required for secret if is **resolved by id**                                       |
+| `functions.editor`            | If you are using **secrets**. `serverless-containers.editor` missing some permissions, so you have to use this one additionally |
+| `lockbox.payloadViewer`       | To access Lockbox secrets during deployment. Required for secret if is **resolved by ID**                                       |
 | `lockbox.viewer`              | To access Lockbox secrets during deployment. Required for secret if is **resolved by name**                                     |
 
 ### Runtime permissions

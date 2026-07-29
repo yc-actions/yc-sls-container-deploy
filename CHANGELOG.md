@@ -12,6 +12,11 @@
   reporting, neither of which a client-only action enables.
 - `dist/licenses.txt` is no longer generated. It was an artifact of ncc; Rollup does not produce one.
 
+### Security
+
+- `@actions/github` bumped from `7` to `9`, clearing nine `undici` advisories that reached the bundle transitively. The
+  action uses this package only to read `context.repo`, and the recorded request payloads are unchanged.
+
 ### Notes
 
 - The `node24` runtime requirement is unchanged from `v4` — `action.yml` already declared it.

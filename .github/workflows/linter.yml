@@ -58,6 +58,15 @@ jobs:
                   VALIDATE_ENV: false
                   VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
                   VALIDATE_JAVASCRIPT_ES: false
+                  # super-linter bundles its own Prettier, which drifts from the version
+                  # pinned in package.json and disagrees with it on real files. The
+                  # format:check step in the TypeScript Tests job runs the pinned version
+                  # over the whole repo, so it is the authority on formatting.
+                  VALIDATE_JAVASCRIPT_PRETTIER: false
                   VALIDATE_JSCPD: false
                   VALIDATE_JSON: false
+                  VALIDATE_JSON_PRETTIER: false
+                  VALIDATE_MARKDOWN_PRETTIER: false
                   VALIDATE_TYPESCRIPT_ES: false
+                  VALIDATE_TYPESCRIPT_PRETTIER: false
+                  VALIDATE_YAML_PRETTIER: false
