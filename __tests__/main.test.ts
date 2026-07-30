@@ -1,51 +1,43 @@
 import { afterEach, beforeEach, describe, expect, it, jest, test } from '@jest/globals'
-import { parseEnvironment, parseLockboxVariablesMapping, run, Secret } from '../src/main'
-// eslint-disable-next-line import/no-namespace
-import * as core from '@actions/core'
-import { context } from '@actions/github'
-import { SpiedFunction } from 'jest-mock'
+
+import * as core from '../__fixtures__/core.js'
+import * as github from '../__fixtures__/github.js'
+import * as axios from '../__fixtures__/axios.js'
+import * as sdk from '../__fixtures__/yandex-sdk/index.js'
 import {
     __setContainerList,
     __setRevisionList,
+    containerService,
     ContainerServiceMock
-} from './__mocks__/@yandex-cloud/nodejs-sdk/serverless-containers-v1'
+} from '../__fixtures__/yandex-sdk/serverless-containers-v1.js'
+import { __setGetSecretFail, __setSecretList, secretService } from '../__fixtures__/yandex-sdk/lockbox-v1.js'
+// Type-only: erased at compile time, so it does not load src/parse/ before the mocks below.
+import type { Secret } from '../src/parse/index.js'
 
-let setOutputMock: SpiedFunction<(name: string, value: string) => void>
-let setFailedMock: SpiedFunction<(message: string | Error) => void>
-let getInputMock: SpiedFunction<(name: string, options?: { required?: boolean; trimWhitespace?: boolean }) => string>
-let getBooleanInputMock: SpiedFunction<
-    (name: string, options?: { required?: boolean; trimWhitespace?: boolean }) => boolean
->
-let getMultilineInputMock: SpiedFunction<
-    (name: string, options?: { required?: boolean; trimWhitespace?: boolean }) => string[]
->
-let infoMock: SpiedFunction<(message: string) => void>
-let errorMock: SpiedFunction<(message: string | Error) => void>
-let repoMock: SpiedFunction<() => { owner: string; repo: string }>
+jest.unstable_mockModule('@actions/core', () => core)
+jest.unstable_mockModule('@actions/github', () => github)
+jest.unstable_mockModule('axios', () => axios)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk', () => sdk)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/serverless-containers-v1', () => ({ containerService }))
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/lockbox-v1', () => ({ secretService }))
+
+// Imported dynamically, after the mock registrations above. A static import would be linked
+// before them, binding src/parse/lockbox-variables.ts to the real @actions/core and leaving two
+// instances of that module in this file - the real `info` would then swallow the calls the mock
+// is supposed to record.
+const { parseEnvironment, parseLockboxVariablesMapping } = await import('../src/parse/index.js')
+const { run } = await import('../src/main.js')
 
 beforeEach(() => {
     jest.clearAllMocks()
-    setOutputMock = jest.spyOn(core, 'setOutput').mockImplementation(() => {})
-    setFailedMock = jest.spyOn(core, 'setFailed').mockImplementation(() => {})
-    getInputMock = jest.spyOn(core, 'getInput').mockImplementation((name: string) => defaultValues[name] || '')
-    getBooleanInputMock = jest.spyOn(core, 'getBooleanInput').mockImplementation(() => false)
-    getMultilineInputMock = jest.spyOn(core, 'getMultilineInput').mockImplementation(() => [])
-    infoMock = jest.spyOn(core, 'info').mockImplementation(() => {})
-    errorMock = jest.spyOn(core, 'error').mockImplementation(() => {})
-    repoMock = jest.spyOn(context, 'repo', 'get').mockReturnValue({ owner: 'owner', repo: 'repo' })
+    setupMockInputs(defaultValues)
 })
 
 afterEach(() => {
     __setContainerList([])
     __setRevisionList([])
-    setOutputMock.mockClear()
-    setFailedMock.mockClear()
-    getInputMock.mockClear()
-    getBooleanInputMock.mockClear()
-    getMultilineInputMock.mockClear()
-    infoMock.mockClear()
-    errorMock.mockClear()
-    repoMock.mockClear()
+    __setSecretList([])
+    __setGetSecretFail(false)
 })
 
 describe('lockbox', () => {
@@ -121,9 +113,9 @@ const defaultValues: Record<string, string> = {
 }
 
 function setupMockInputs(values: Record<string, string>) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getInput } = require('@actions/core')
-    getInput.mockImplementation((name: string) => values[name] || '')
+    core.getInput.mockImplementation((name: string) => values[name] || '')
+    core.getBooleanInput.mockImplementation((name: string) => values[name] === 'true')
+    core.getMultilineInput.mockImplementation((name: string) => (values[name] ? values[name].split('\n') : []))
 }
 
 describe('main run function', () => {
@@ -134,9 +126,9 @@ describe('main run function', () => {
     it('should run with all inputs', async () => {
         setupMockInputs(defaultValues)
         await run()
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should skip container creation if it already exists', async () => {
@@ -153,9 +145,9 @@ describe('main run function', () => {
         }
         __setContainerList([containerObj])
         await run()
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
         // Should not call create
         expect(ContainerServiceMock.create).not.toHaveBeenCalled()
     })
@@ -164,23 +156,23 @@ describe('main run function', () => {
         setupMockInputs({ ...defaultValues, public: 'true' })
         await run()
         expect(ContainerServiceMock.setAccessBindings).toHaveBeenCalled()
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should call setFailed on error', async () => {
         setupMockInputs({ ...defaultValues, 'container-name': 'fail' })
         await run()
-        expect(setFailedMock).toHaveBeenCalled()
+        expect(core.setFailed).toHaveBeenCalled()
     })
 
     it('should use IAM token if provided', async () => {
         setupMockInputs({ ...defaultValues, 'yc-sa-json-credentials': '', 'yc-iam-token': 'iam-token' })
         await run()
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should create task revision if runtime is task', async () => {
@@ -191,9 +183,9 @@ describe('main run function', () => {
                 runtime: { task: {} }
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should handle runtime parameter case-insensitively', async () => {
@@ -204,9 +196,9 @@ describe('main run function', () => {
                 runtime: { http: {} }
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should pass scalingPolicy with both zone limits when provided', async () => {
@@ -224,9 +216,9 @@ describe('main run function', () => {
                 }
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should pass scalingPolicy with only zoneInstancesLimit when provided', async () => {
@@ -242,9 +234,9 @@ describe('main run function', () => {
                 })
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should pass scalingPolicy with only zoneRequestsLimit when provided', async () => {
@@ -260,9 +252,9 @@ describe('main run function', () => {
                 })
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should not pass scalingPolicy when no zone limits are provided', async () => {
@@ -273,9 +265,9 @@ describe('main run function', () => {
                 scalingPolicy: expect.anything()
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 
     it('should handle zone limits with value 0', async () => {
@@ -293,8 +285,8 @@ describe('main run function', () => {
                 }
             })
         )
-        expect(setOutputMock).toHaveBeenCalledWith('id', 'container-id')
-        expect(setOutputMock).toHaveBeenCalledWith('rev', 'revision-id')
-        expect(setFailedMock).not.toHaveBeenCalled()
+        expect(core.setOutput).toHaveBeenCalledWith('id', 'container-id')
+        expect(core.setOutput).toHaveBeenCalledWith('rev', 'revision-id')
+        expect(core.setFailed).not.toHaveBeenCalled()
     })
 })

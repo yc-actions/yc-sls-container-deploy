@@ -1,13 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals'
-import { Session } from '@yandex-cloud/nodejs-sdk'
 import { Secret } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/lockbox/v1/secret'
-import {
-    resolveLatestLockboxVersions,
-    Secret as AppSecret,
-    parseLockboxVariablesMapping,
-    parseLockboxSecretDefinition
-} from '../src/main'
-import { __setGetSecretFail, __setSecretList } from './__mocks__/@yandex-cloud/nodejs-sdk/lockbox-v1'
+
+import * as core from '../__fixtures__/core.js'
+import * as github from '../__fixtures__/github.js'
+import * as axios from '../__fixtures__/axios.js'
+import * as sdk from '../__fixtures__/yandex-sdk/index.js'
+import { containerService } from '../__fixtures__/yandex-sdk/serverless-containers-v1.js'
+import { __setGetSecretFail, __setSecretList, secretService } from '../__fixtures__/yandex-sdk/lockbox-v1.js'
+// Type-only: erased at compile time, so it does not load src/parse/ before the mocks below.
+import type { Secret as AppSecret } from '../src/parse/index.js'
+
+jest.unstable_mockModule('@actions/core', () => core)
+jest.unstable_mockModule('@actions/github', () => github)
+jest.unstable_mockModule('axios', () => axios)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk', () => sdk)
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/serverless-containers-v1', () => ({ containerService }))
+jest.unstable_mockModule('@yandex-cloud/nodejs-sdk/lockbox-v1', () => ({ secretService }))
+
+// Imported dynamically, after the mock registrations above. A static import would be linked
+// before them, binding src/parse/lockbox-variables.ts to the real @actions/core.
+const { parseLockboxSecretDefinition, parseLockboxVariablesMapping } = await import('../src/parse/index.js')
+const { resolveLatestLockboxVersions } = await import('../src/lockbox.js')
+const { Session } = sdk
 
 describe('resolveLatestLockboxVersions', () => {
     beforeEach(() => {
@@ -353,8 +367,6 @@ describe('resolveLatestLockboxVersions', () => {
     })
 
     it('should return null for comments and empty lines in parseLockboxSecretDefinition', () => {
-        const { parseLockboxSecretDefinition } = require('../src/main')
-
         // Test empty lines and comments should return null
         expect(parseLockboxSecretDefinition('')).toBeNull()
         expect(parseLockboxSecretDefinition('  ')).toBeNull()

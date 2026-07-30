@@ -1,0 +1,72 @@
+name: Lint Codebase
+
+on:
+    pull_request:
+        branches:
+            - main
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+    packages: read
+    statuses: write
+
+jobs:
+    lint:
+        name: Lint Codebase
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              id: checkout
+              uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              id: setup-node
+              uses: actions/setup-node@v7
+              with:
+                  node-version-file: .node-version
+                  cache: npm
+
+            - name: Install Dependencies
+              id: install
+              run: npm ci
+
+            - name: Lint Codebase
+              id: super-linter
+              uses: super-linter/super-linter/slim@v8
+              env:
+                  DEFAULT_BRANCH: main
+                  FILTER_REGEX_EXCLUDE: dist/**/*
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  LINTER_RULES_PATH: .
+                  VALIDATE_ALL_CODEBASE: false
+                  # Biome ignores LINTER_RULES_PATH and applies its own defaults (tabs, 80
+                  # columns, double quotes, semicolons), which contradict this repo's
+                  # Prettier config. format:check and lint (via the TypeScript Tests job)
+                  # already enforce formatting and linting, so leave these off.
+                  VALIDATE_BIOME_FORMAT: false
+                  VALIDATE_BIOME_LINT: false
+                  # dotenv-linter's IncorrectDelimiter and UnorderedKey rules cannot be
+                  # satisfied by .env.example: GitHub Actions names inputs INPUT_<NAME>
+                  # with dashes preserved, so the keys are not ours to rename, and the
+                  # file is grouped by concern to mirror action.yml rather than sorted.
+                  VALIDATE_ENV: false
+                  VALIDATE_GITHUB_ACTIONS_ZIZMOR: false
+                  VALIDATE_JAVASCRIPT_ES: false
+                  # super-linter bundles its own Prettier, which drifts from the version
+                  # pinned in package.json and disagrees with it on real files. The
+                  # format:check step in the TypeScript Tests job runs the pinned version
+                  # over the whole repo, so it is the authority on formatting.
+                  VALIDATE_JAVASCRIPT_PRETTIER: false
+                  VALIDATE_JSCPD: false
+                  VALIDATE_JSON: false
+                  VALIDATE_JSON_PRETTIER: false
+                  VALIDATE_MARKDOWN_PRETTIER: false
+                  VALIDATE_TYPESCRIPT_ES: false
+                  VALIDATE_TYPESCRIPT_PRETTIER: false
+                  VALIDATE_YAML_PRETTIER: false

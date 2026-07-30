@@ -1,5 +1,5 @@
 import { expect, test } from '@jest/globals'
-import { GB, MB, parseMemory } from '../src/memory'
+import { GB, MB, parseMemory } from '../src/parse/memory.js'
 
 const mbs = ['mb', 'MB', ' mb']
 const gbs = ['GB', 'Gb', ' gb']
@@ -8,10 +8,10 @@ test.each(
     [128, 256, 512, 1024, 2048].flatMap(x =>
         mbs.map(u => ({
             input: x.toString() + u,
-            expected: (x as any) * MB
+            expected: x * MB
         }))
     )
-)('test memory value $input', ({ input, expected }) => {
+)('memory value $input', ({ input, expected }) => {
     expect(parseMemory(input)).toEqual(expected)
 })
 
@@ -19,9 +19,9 @@ test.each(
     [1, 2, 4, 8].flatMap(x =>
         gbs.map(u => ({
             input: x.toString() + u,
-            expected: (x as any) * GB
+            expected: x * GB
         }))
     )
-)('test memory value $input', ({ input, expected }) => {
+)('memory value $input', ({ input, expected }) => {
     expect(parseMemory(input)).toEqual(expected)
 })

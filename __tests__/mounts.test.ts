@@ -1,5 +1,5 @@
 import { expect, test } from '@jest/globals'
-import { parseMounts } from '../src/mounts'
+import { parseMounts } from '../src/parse/mounts.js'
 import { Mount_Mode } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/containers/v1/container'
 
 test('should return undefined when no mounts are provided', () => {
@@ -12,8 +12,9 @@ test('should throw an error if storage mount s3Path is empty', () => {
 
     try {
         parseMounts([], [inputLineWithEmptyS3Path])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-storage-mounts: Line: '${inputLineWithEmptyS3Path}' has wrong format. Empty s3Path`
         )
     }
@@ -24,8 +25,9 @@ test('should throw an error if storage mount mountPointPath is empty', () => {
 
     try {
         parseMounts([], [inputLineWithEmptyMountPointPath])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-storage-mounts: Line: '${inputLineWithEmptyMountPointPath}' has wrong format. Empty mountPath`
         )
     }
@@ -36,8 +38,9 @@ test('should throw an error if storage mount accessMode is invalid', () => {
 
     try {
         parseMounts([], [inputLineWithInvalidAccessMode])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-storage-mounts: Line: '${inputLineWithInvalidAccessMode}' has wrong format. Invalid accessMode. Possible values: read-only, ro, readOnly, read_only, ReadOnly, read-write, rw, readWrite, read_write, ReadWrite`
         )
     }
@@ -49,8 +52,9 @@ test('should throw an error if ephemeral mount path is empty', () => {
 
     try {
         parseMounts([inputLineWithEmptyPath], [])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-ephemeral-mounts: Line: '${inputLineWithEmptyPath}' has wrong format. Empty mount path`
         )
     }
@@ -61,8 +65,9 @@ test('should throw an error if ephemeral mount size is empty', () => {
 
     try {
         parseMounts([inputLineWithEmptySize], [])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-ephemeral-mounts: Line: '${inputLineWithEmptySize}' has wrong format. Empty size`
         )
     }
@@ -73,8 +78,9 @@ test('should throw an error if ephemeral mount accessMode is invalid', () => {
 
     try {
         parseMounts([inputLineWithInvalidAccessMode], [])
-    } catch (e: any) {
-        expect(e.message).toEqual(
+    } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect((e as Error).message).toEqual(
             `revision-ephemeral-mounts: Line: '${inputLineWithInvalidAccessMode}' has wrong format. Invalid accessMode. Possible values: read-only, ro, readOnly, read_only, ReadOnly, read-write, rw, readWrite, read_write, ReadWrite`
         )
     }
@@ -177,7 +183,7 @@ test.each([
             }
         ]
     }
-])('test storage mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
+])('storage mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
     expect(parseMounts(ephemeralInput, storageInput)).toMatchObject(expectedOutput)
 })
 
@@ -253,7 +259,7 @@ test.each([
             }
         ]
     }
-])('test ephemeral mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
+])('ephemeral mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
     expect(parseMounts(ephemeralInput, storageInput)).toMatchObject(expectedOutput)
 })
 
@@ -318,6 +324,6 @@ test.each([
             }
         ]
     }
-])('test combined mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
+])('combined mounts: $description', ({ ephemeralInput, storageInput, expectedOutput }) => {
     expect(parseMounts(ephemeralInput, storageInput)).toMatchObject(expectedOutput)
 })
