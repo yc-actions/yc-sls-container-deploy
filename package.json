@@ -38,7 +38,7 @@
         "@grpc/grpc-js": "^1.14.4",
         "@supercharge/promise-pool": "^3.3.0",
         "@yandex-cloud/nodejs-sdk": "^3.2.0",
-        "axios": "^1.18.1"
+        "axios": "^1.19.0"
     },
     "devDependencies": {
         "@eslint/eslintrc": "^3.3.6",
